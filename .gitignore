@@ -1,0 +1,39 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+dist/
+node-compile-cache/
+
+# Vite
+.vite/
+.vitepress/
+
+# Next
+.next/
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+*.log
+*.lcov
+tmp-tests/
+
+# Editor configs
+.vscode/
+.idea/
+*.swp
+
+# MacOS & Linux
+.DS_Store
+Thumbs.db
+
+# Misc
+.env
+.env.*
+playground/
