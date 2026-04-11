@@ -9,6 +9,7 @@ import {
 } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
 import { normalizeFilename } from "@/lib/normalizeFilename";
+import { buildNamingSummary } from "@/lib/summaryFields";
 
 interface SelectedCanonMeta {
   master: string;
@@ -167,7 +168,8 @@ export async function POST(request: Request) {
     }
 
     // ✅ 執行核心命名邏輯 (調用新的 GPT_Router 流程)
-    const setName = await deriveSetNameFromSummary(summary);
+    const namingSummary = buildNamingSummary(summary, selectedCanon?.master ?? null);
+    const setName = await deriveSetNameFromSummary(namingSummary);
     const normalizedSetName = normalizeFilename(setName);
 
     const baseFolderId = ROOT_DRIVE_FOLDER_ID || BASE_DRIVE_FOLDER_ID;

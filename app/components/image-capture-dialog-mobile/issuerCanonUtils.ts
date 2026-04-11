@@ -1,12 +1,10 @@
 import type { IssuerCanonEntry } from "@/lib/issuerCanon";
+import { upsertIssuerField } from "@/lib/summaryFields";
 
 interface CanonListResponse {
   issuers?: IssuerCanonEntry[];
 }
 
-/**
- * Fetch the issuer canon list from the API (Drive/local JSON abstraction).
- */
 export const fetchIssuerCanonList = async (
   fetcher: typeof fetch = fetch,
 ): Promise<IssuerCanonEntry[]> => {
@@ -21,12 +19,6 @@ export const fetchIssuerCanonList = async (
   return payload.issuers ?? [];
 };
 
-/**
- * Insert a canon entry into the user's editable summary without auto-saving.
- * - If the summary is empty, seed it with the canon line (optionally followed by the draft summary).
- * - If the canon master already appears, leave the summary untouched.
- * - Otherwise, prepend a helpful canon line.
- */
 export const applyCanonToSummary = ({
   canon,
   currentSummary,
@@ -36,27 +28,10 @@ export const applyCanonToSummary = ({
   currentSummary: string;
   draftSummary: string;
 }): string => {
-  const canonLine = `單位: ${canon.master}`;
-  const stripCanonLines = (text: string) =>
-    text
-      .split(/\r?\n/)
-      .filter((line) => !/^\s*單位\s*:/u.test(line.trim()))
-      .map((line) => line.replace(/\s+$/u, ""));
+  const baseSummary =
+    currentSummary.trim().length > 0 ? currentSummary : draftSummary;
 
-  // Prefer the current editable text; fall back to the original draft when empty.
-  const baseLines =
-    currentSummary.trim().length > 0
-      ? stripCanonLines(currentSummary)
-      : stripCanonLines(draftSummary);
-
-  const hasContent = baseLines.some((line) => line.trim().length > 0);
-
-  if (!hasContent) {
-    return canonLine;
-  }
-
-  // Always place the selected canon on the first line while keeping the rest of the content.
-  return [canonLine, ...baseLines].join("\n");
+  return upsertIssuerField(baseSummary, canon.master);
 };
 
 export type { IssuerCanonEntry };
