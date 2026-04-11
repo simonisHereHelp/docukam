@@ -86,6 +86,47 @@ export async function driveSaveFiles(params: {
 
 }
 
+export async function resolveUniqueDriveSetName(params: {
+  folderId: string;
+  preferredBaseName: string;
+}): Promise<string> {
+  const { folderId, preferredBaseName } = params;
+  const session = await auth();
+  if (!session) throw new Error("Not authenticated.");
+
+  const accessToken = (session as any)?.accessToken as string | undefined;
+  if (!accessToken) throw new Error("Missing Google Drive access token on session.");
+
+  const resolvedFolderId = await ensureFolderPath(folderId, accessToken);
+  const normalizedBaseName = normalizeFilename(preferredBaseName);
+
+  const preferredSummaryName = `${normalizedBaseName}.md`;
+  const preferredExists = await driveFileExists({
+    folderId: resolvedFolderId,
+    name: preferredSummaryName,
+    accessToken,
+  });
+
+  if (!preferredExists) {
+    return normalizedBaseName;
+  }
+
+  for (let suffix = 2; suffix < 1000; suffix += 1) {
+    const candidateBaseName = `${normalizedBaseName}-${suffix}`;
+    const candidateExists = await driveFileExists({
+      folderId: resolvedFolderId,
+      name: `${candidateBaseName}.md`,
+      accessToken,
+    });
+
+    if (!candidateExists) {
+      return candidateBaseName;
+    }
+  }
+
+  throw new Error("Unable to resolve a unique Drive file name.");
+}
+
 async function ensureFolderPath(folderPath: string, accessToken: string): Promise<string> {
   if (!folderPath) throw new Error("Missing target Drive folder");
 
@@ -103,6 +144,33 @@ async function ensureFolderPath(folderPath: string, accessToken: string): Promis
   }
 
   return currentId;
+}
+
+async function driveFileExists(params: {
+  folderId: string;
+  name: string;
+  accessToken: string;
+}): Promise<boolean> {
+  const { folderId, name, accessToken } = params;
+  const escapedName = name.replace(/'/g, "\\'");
+  const query = encodeURIComponent(
+    `name = '${escapedName}' and '${folderId}' in parents and trashed = false`,
+  );
+
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)&pageSize=1`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Failed to inspect Drive files '${name}': ${response.status} ${text}`);
+  }
+
+  const payload = (await response.json().catch(() => ({}))) as { files?: { id: string }[] };
+  return Boolean(payload?.files?.length);
 }
 
 async function findOrCreateChildFolder(params: {

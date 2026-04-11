@@ -1,7 +1,7 @@
 // app/api/save-set/route.ts
 import { NextResponse } from "next/server";
 import { Buffer } from "buffer";
-import { driveSaveFiles } from "@/lib/driveSaveFiles";
+import { driveSaveFiles, resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
 import { GPT_Router } from "@/lib/gptRouter";
 import {
   DRIVE_FALLBACK_FOLDER_ID,
@@ -205,9 +205,14 @@ export async function POST(request: Request) {
       topic = resolved.topic;
     }
 
+    const uniqueSetName = await resolveUniqueDriveSetName({
+      folderId: targetFolderId,
+      preferredBaseName: normalizedSetName,
+    });
+
     const imageFiles = files;
     const markdown = buildMarkdown({
-      setName: normalizedSetName,
+      setName: uniqueSetName,
       summary,
       imageFiles,
     });
@@ -220,7 +225,7 @@ export async function POST(request: Request) {
       files: uploadFiles,
       fileToUpload: async (file) => {
         const baseName = normalizeFilename(
-          normalizedSetName.replace(/[\\/:*?"<>|]/g, "_"),
+          uniqueSetName.replace(/[\\/:*?"<>|]/g, "_"),
         );
         const extension = resolveExtension(file.name, "dat");
 
@@ -239,7 +244,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { setName: normalizedSetName, targetFolderId, topic },
+      { setName: uniqueSetName, targetFolderId, topic },
       { status: 200 },
     );
   } catch (err: any) {
