@@ -9,7 +9,7 @@ import {
 } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
 import { normalizeFilename } from "@/lib/normalizeFilename";
-import { buildNamingSummary } from "@/lib/summaryFields";
+import { buildNamingSummary, extractIssuerField } from "@/lib/summaryFields";
 
 interface SelectedCanonMeta {
   master: string;
@@ -82,7 +82,8 @@ const ROOT_DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
  */
 async function deriveSetNameFromSummary(summary: string): Promise<string> {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const fallbackTitle = "document";
+  const issuerName = extractIssuerField(summary);
+  const fallbackTitle = issuerName || "document";
 
   if (!OPENAI_API_KEY) return `${fallbackTitle}-${datePart}`;
 
@@ -125,6 +126,17 @@ async function deriveSetNameFromSummary(summary: string): Promise<string> {
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "")
       .slice(0, 80) || fallbackTitle;
+
+    if (issuerName) {
+      const normalizedIssuer = normalizeFilename(issuerName);
+      if (
+        !safeLabel ||
+        safeLabel.toLowerCase() === "document" ||
+        !safeLabel.includes(normalizedIssuer)
+      ) {
+        return `${normalizedIssuer}-${datePart}`;
+      }
+    }
 
     return `${safeLabel}-${datePart}`;
   } catch (err) {
