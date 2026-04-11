@@ -1,4 +1,4 @@
-import type { IssuerCanonEntry } from "@/types/issuerCanon";
+import type { IssuerCanonEntry } from "@/lib/issuerCanon";
 
 interface CanonListResponse {
   issuers?: IssuerCanonEntry[];
