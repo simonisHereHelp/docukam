@@ -7,7 +7,7 @@ import {
   Save,
   X,
 } from "lucide-react";
-import WebCamera from "@shivantra/react-web-camera";
+import WebCamera from "@/lib/react-web-camera";
 import { Button } from "@/ui/components";
 import type { CameraViewProps } from "./types";
 

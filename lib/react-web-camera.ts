@@ -1,0 +1,42 @@
+import type React from "react";
+import WebCameraImpl from "../dist/react-web-camera.js";
+
+export type CaptureType = "jpeg" | "png" | "webp";
+export type CaptureQuality =
+  | 0.1
+  | 0.2
+  | 0.3
+  | 0.4
+  | 0.5
+  | 0.6
+  | 0.7
+  | 0.8
+  | 0.9
+  | 1;
+export type CaptureMode = "front" | "back";
+export type FacingMode = "user" | "environment";
+
+export interface WebCameraProps {
+  className?: string;
+  style?: React.CSSProperties;
+  videoClassName?: string;
+  videoStyle?: React.CSSProperties;
+  getFileName?: () => string;
+  captureMode?: CaptureMode;
+  captureType?: CaptureType;
+  captureQuality?: CaptureQuality;
+  onError?: (err: Error) => void;
+}
+
+export type WebCameraHandler = {
+  capture: () => Promise<File | null>;
+  switch: (facingMode?: FacingMode) => Promise<void>;
+  getMode: () => CaptureMode;
+};
+
+const WebCamera = WebCameraImpl as React.ForwardRefExoticComponent<
+  WebCameraProps & React.RefAttributes<WebCameraHandler>
+>;
+
+export { WebCamera };
+export default WebCamera;

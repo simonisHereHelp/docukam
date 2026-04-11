@@ -1,39 +1,29 @@
-# Node
-node_modules/
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
 npm-debug.log*
 yarn-debug.log*
-pnpm-debug.log*
-package-lock.json
-yarn.lock
-dist/
-node-compile-cache/
+yarn-error.log*
+.pnpm-debug.log*
 
-# Vite
-.vite/
-.vitepress/
+# env files
+.env*
 
-# Next
-.next/
+# vercel
+.vercel
 
-# TypeScript
+# typescript
 *.tsbuildinfo
-
-# Testing
-coverage/
-*.log
-*.lcov
-tmp-tests/
-
-# Editor configs
-.vscode/
-.idea/
-*.swp
-
-# MacOS & Linux
-.DS_Store
-Thumbs.db
-
-# Misc
-.env
-.env.*
-playground/
+next-env.d.ts

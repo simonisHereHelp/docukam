@@ -9,8 +9,8 @@ import {
   X,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import WebCamera from "@shivantra/react-web-camera";
-import type { FacingMode, WebCameraHandler } from "@shivantra/react-web-camera";
+import WebCamera from "@/lib/react-web-camera";
+import type { FacingMode, WebCameraHandler } from "@/lib/react-web-camera";
 
 import { Button, Dialog, DialogContent, DialogTitle } from "@/ui/components";
 

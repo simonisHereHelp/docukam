@@ -1,5 +1,5 @@
 import type React from "react"; // Required for React.RefObject
-import type { FacingMode, WebCameraHandler } from "@shivantra/react-web-camera";
+import type { FacingMode, WebCameraHandler } from "@/lib/react-web-camera";
 import type { IssuerCanonEntry } from "./issuerCanonUtils";
 
 export interface Image {
