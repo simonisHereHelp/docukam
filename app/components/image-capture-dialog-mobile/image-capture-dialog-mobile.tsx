@@ -17,6 +17,10 @@ export function ImageCaptureDialogMobile({
   onOpenChange,
   initialSource = "camera",
 }: ImageCaptureDialogMobileProps) {
+  if (!open) {
+    return null;
+  }
+
   const { state, actions, cameraRef } = useImageCaptureState(
     onOpenChange,
     initialSource,

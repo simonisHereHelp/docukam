@@ -120,11 +120,13 @@ function Content() {
         </div>
       </div>
 
-      <ImageCaptureDialogMobile
-        open={dialogSource !== null}
-        onOpenChange={handleClose}
-        initialSource={dialogSource ?? "camera"}
-      />
+      {dialogSource !== null && (
+        <ImageCaptureDialogMobile
+          open
+          onOpenChange={handleClose}
+          initialSource={dialogSource}
+        />
+      )}
     </div>
   );
 }
