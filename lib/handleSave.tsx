@@ -52,6 +52,7 @@ export const handleSave = async ({
   try {
     const formData = new FormData();
     formData.append("summary", trimmedFinalSummary);
+    formData.append("ocrPlainText", sourceSummary.trim());
 
     if (selectedCanon) {
       formData.append("selectedCanon", JSON.stringify(selectedCanon));

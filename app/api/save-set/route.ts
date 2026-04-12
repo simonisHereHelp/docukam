@@ -44,9 +44,10 @@ const resolveMimeType = (file: File, fallbackExtension: string) => {
 function buildMarkdown(params: {
   setName: string;
   summary: string;
+  ocrJsonFileName: string;
   imageFiles: File[];
 }) {
-  const { setName, summary, imageFiles } = params;
+  const { setName, summary, ocrJsonFileName, imageFiles } = params;
   const images = imageFiles.map((file, idx) => {
     const pageNumber = idx + 1;
     const extension = resolveExtension(file.name, "jpeg");
@@ -58,6 +59,12 @@ function buildMarkdown(params: {
 ## summary
 
 ${summary.trim()}
+
+---
+
+## json reference
+
+[${ocrJsonFileName}](./${ocrJsonFileName})
 
 ---
 
@@ -87,6 +94,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const summary = (formData.get("summary") as string | null)?.trim() ?? "";
+    const ocrPlainText = (formData.get("ocrPlainText") as string | null)?.trim() ?? "";
     const selectedCanonRaw = formData.get("selectedCanon");
     const selectedSubfolderRaw = formData.get("selectedSubfolder");
     let selectedCanon: SelectedCanonMeta | null = null;
@@ -111,8 +119,11 @@ export async function POST(request: Request) {
 
     const files = formData.getAll("files").filter((file): file is File => file instanceof File);
 
-    if (!summary || !files.length) {
-      return NextResponse.json({ error: "Summary and files are required." }, { status: 400 });
+    if (!summary || !ocrPlainText || !files.length) {
+      return NextResponse.json(
+        { error: "Summary, OCR plain text, and files are required." },
+        { status: 400 },
+      );
     }
 
     const namingSummary = buildNamingSummary(summary, selectedCanon?.master ?? null);
@@ -146,14 +157,25 @@ export async function POST(request: Request) {
     });
 
     const imageFiles = files;
+    const ocrJsonFileName = `${uniqueSetName}.json`;
     const markdown = buildMarkdown({
       setName: uniqueSetName,
       summary,
+      ocrJsonFileName,
       imageFiles,
     });
 
+    const ocrJson = JSON.stringify(
+      {
+        plainText: ocrPlainText,
+      },
+      null,
+      2,
+    );
+
     const summaryFile = new File([markdown], "summary.md", { type: "text/markdown" });
-    const uploadFiles = [...imageFiles, summaryFile];
+    const ocrJsonFile = new File([ocrJson], "ocr.json", { type: "application/json" });
+    const uploadFiles = [...imageFiles, ocrJsonFile, summaryFile];
 
     await driveSaveFiles({
       folderId: targetFolderId,
@@ -167,6 +189,8 @@ export async function POST(request: Request) {
         const fileName = normalizeFilename(
           file === summaryFile || file.name === "summary.md"
             ? `${baseName}.md`
+            : file === ocrJsonFile || file.name === "ocr.json"
+              ? `${baseName}.json`
             : `${baseName}-p${imageFiles.indexOf(file) + 1}.${extension ?? "dat"}`,
         );
 
