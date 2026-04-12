@@ -112,6 +112,17 @@ export async function handleSummarize(req: Request) {
       userPrompt,
     };
 
+    console.log("[summarize] ingest payload preview", {
+      plainTextLength: ingestPayload.plainText.length,
+      markdownLength: ingestPayload.markdown.length,
+      title: ingestPayload.title,
+      pagesCount: ingestPayload.pages.length,
+      hasSystemPrompt: Boolean(ingestPayload.systemPrompt),
+      hasUserPrompt: Boolean(ingestPayload.userPrompt),
+      plainTextPreview: ingestPayload.plainText.slice(0, 120),
+      markdownPreview: ingestPayload.markdown.slice(0, 120),
+    });
+
     const response = await fetch(`${qwenBaseUrl.replace(/\/+$/, "")}/ingest`, {
       method: "POST",
       headers: {
@@ -121,8 +132,11 @@ export async function handleSummarize(req: Request) {
       body: JSON.stringify(ingestPayload),
     });
 
+    console.log("[summarize] ingest response status", response.status);
+
     if (!response.ok) {
       const message = await response.text().catch(() => "");
+      console.error("[summarize] ingest error body", message);
       throw new Error(message || `summarize failed with status ${response.status}`);
     }
 

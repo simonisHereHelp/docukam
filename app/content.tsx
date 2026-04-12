@@ -111,9 +111,7 @@ function Content() {
                   </div>
                 ) : (
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    {isMobile
-                      ? "Mobile-optimized interface"
-                      : "Desktop-enhanced experience"}
+                    Kapture Docs. Kprep for RAG.
                   </p>
                 )}
               </div>
