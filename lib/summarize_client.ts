@@ -74,8 +74,8 @@ export const runSummaryExtract = async ({
       throw new Error(message || "Failed to extract OCR text.");
     }
 
-    const data = (await response.json()) as { markdown?: string; plainText?: string };
-    const extractedText = (data.markdown || data.plainText || "").trim();
+    const data = (await response.json()) as { plainText?: string };
+    const extractedText = (data.plainText || "").trim();
     const resolvedSummary = extractedText.length ? extractedText : fallbackSummary;
 
     setOcrSummary(resolvedSummary);

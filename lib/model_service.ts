@@ -54,12 +54,12 @@ export async function handleOcrExtract(req: Request) {
     const payload = (await response.json().catch(() => null)) as
       | { markdown?: string; plainText?: string }
       | null;
+    const plainText = payload?.plainText?.trim() ?? "";
 
     return NextResponse.json(
       {
         backend: "ocr-extract",
-        markdown: payload?.markdown ?? "",
-        plainText: payload?.plainText ?? "",
+        plainText,
         raw: payload,
       },
       { status: 200 },
