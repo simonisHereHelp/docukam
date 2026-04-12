@@ -6,6 +6,15 @@ const buildEndpoint = (baseUrl: string, pathName: string) =>
 const SUMMARIZE_INSTRUCTION =
   "你是一位文件内容摘要專家，你擅長使用6W框架整理出單位、收件人、日期、主題與地點。你也擅長整理出abstract_summary，詳細列出文件的摘要，以下是文件的文字内容";
 
+const extract6WSummary = (responseText: string) => {
+  const trimmed = responseText.trim();
+  const match = trimmed.match(/(?:^|\n)(6W摘要|6W summary)\s*\n([\s\S]*)$/i);
+  if (!match) return trimmed;
+
+  const extracted = match[2]?.trim() ?? "";
+  return extracted || trimmed;
+};
+
 export async function handleOcrExtract(req: Request) {
   const paddleBaseUrl = process.env.PADDLE_OCR_URL;
   const paddleBearerToken = process.env.PADDLE_OCR_BEARER_TOKEN;
@@ -118,10 +127,12 @@ export async function handleSummarize(req: Request) {
       throw new Error(responseText || `summarize failed with status ${response.status}`);
     }
 
+    const summary = extract6WSummary(responseText);
+
     return NextResponse.json(
       {
         backend: "summarize",
-        summary: responseText.trim(),
+        summary,
         raw: responseText,
       },
       { status: 200 },
