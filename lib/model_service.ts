@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { loadPromptSource, renderPromptTemplate } from "@/lib/jsonSource";
-import { PROMPT_SUMMARY_SOURCE } from "@/lib/jsonCanonSources";
-
 const buildEndpoint = (baseUrl: string, pathName: string) =>
   `${baseUrl.replace(/\/+$/, "")}${pathName.startsWith("/") ? pathName : `/${pathName}`}`;
+
+const SUMMARIZE_INSTRUCTION =
+  "你是一位文件内容摘要專家，你擅長使用6W框架整理出單位、收件人、日期、主題與地點。你也擅長整理出abstract_summary，詳細列出文件的摘要，以下是文件的文字内容";
 
 export async function handleOcrExtract(req: Request) {
   const paddleBaseUrl = process.env.PADDLE_OCR_URL;
@@ -52,7 +52,7 @@ export async function handleOcrExtract(req: Request) {
     }
 
     const payload = (await response.json().catch(() => null)) as
-      | { markdown?: string; plainText?: string }
+      | { plainText?: string }
       | null;
     const plainText = payload?.plainText?.trim() ?? "";
 
@@ -80,53 +80,30 @@ export async function handleSummarize(req: Request) {
 
   try {
     const body = (await req.json().catch(() => null)) as
-      | { rawText?: string; markdown?: string; plainText?: string; wordTarget?: number }
+      | { rawText?: string; plainText?: string }
       | null;
 
-    const editedRawText =
-      body?.plainText?.trim() ??
-      body?.markdown?.trim() ??
-      body?.rawText?.trim() ??
-      "";
+    const plainText = body?.plainText?.trim() ?? body?.rawText?.trim() ?? "";
 
-    if (!editedRawText) {
-      return NextResponse.json({ error: "Missing rawText" }, { status: 400 });
+    if (!plainText) {
+      return NextResponse.json({ error: "Missing plainText" }, { status: 400 });
     }
 
-    const prompt = await loadPromptSource(PROMPT_SUMMARY_SOURCE);
-    const systemPrompt = prompt.system;
-    const userPrompt = renderPromptTemplate(prompt.user, {
-      SUMMARY: editedRawText,
-      wordTarget: body?.wordTarget ?? prompt.wordTarget ?? 180,
-      日期: "",
-      單位: "",
-    });
-
     const ingestPayload = {
-      plainText: editedRawText,
-      markdown: editedRawText,
-      title: "",
-      abstract: "",
-      pages: [],
-      systemPrompt,
-      userPrompt,
+      instruction: SUMMARIZE_INSTRUCTION,
+      input: plainText,
     };
 
     console.log("[summarize] ingest payload preview", {
-      plainTextLength: ingestPayload.plainText.length,
-      markdownLength: ingestPayload.markdown.length,
-      title: ingestPayload.title,
-      pagesCount: ingestPayload.pages.length,
-      hasSystemPrompt: Boolean(ingestPayload.systemPrompt),
-      hasUserPrompt: Boolean(ingestPayload.userPrompt),
-      plainTextPreview: ingestPayload.plainText.slice(0, 120),
-      markdownPreview: ingestPayload.markdown.slice(0, 120),
+      hasInstruction: Boolean(ingestPayload.instruction),
+      inputLength: ingestPayload.input.length,
+      inputPreview: ingestPayload.input.slice(0, 120),
     });
 
     const response = await fetch(`${qwenBaseUrl.replace(/\/+$/, "")}/ingest`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
         ...(qwenToken ? { Authorization: `Bearer ${qwenToken}` } : {}),
       },
       body: JSON.stringify(ingestPayload),
@@ -134,28 +111,18 @@ export async function handleSummarize(req: Request) {
 
     console.log("[summarize] ingest response status", response.status);
 
+    const responseText = await response.text().catch(() => "");
+
     if (!response.ok) {
-      const message = await response.text().catch(() => "");
-      console.error("[summarize] ingest error body", message);
-      throw new Error(message || `summarize failed with status ${response.status}`);
+      console.error("[summarize] ingest error body", responseText);
+      throw new Error(responseText || `summarize failed with status ${response.status}`);
     }
-
-    const data = (await response.json().catch(() => null)) as
-      | {
-          normalizedText?: string;
-          abstractSummary?: string;
-          issuer_name?: string;
-          documentDate?: string;
-        }
-      | null;
-
-    const summary = data?.normalizedText?.trim() || data?.abstractSummary?.trim() || "";
 
     return NextResponse.json(
       {
         backend: "summarize",
-        summary,
-        raw: data,
+        summary: responseText.trim(),
+        raw: responseText,
       },
       { status: 200 },
     );

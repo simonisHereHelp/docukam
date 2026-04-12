@@ -39,29 +39,6 @@ export async function loadJsonSource(source: string, useAuth = false): Promise<a
   return response.json();
 }
 
-export async function loadPromptSource(source: string): Promise<{
-  system: string;
-  user: string;
-  wordTarget?: number;
-}> {
-  const promptConfig = await loadJsonSource(source);
-  return {
-    system: promptConfig?.system ?? "",
-    user: promptConfig?.user ?? "",
-    wordTarget: promptConfig?.wordTarget,
-  };
-}
-
-export const renderPromptTemplate = (
-  template: string,
-  replacements: Record<string, string | number | undefined | null>,
-) =>
-  Object.entries(replacements).reduce((output, [key, value]) => {
-    const normalizedValue =
-      value === undefined || value === null ? "" : String(value);
-    return output.replaceAll(`{{${key}}}`, normalizedValue);
-  }, template);
-
 export async function updateDriveJsonSource(source: string, data: unknown): Promise<void> {
   const resolvedPath = resolveLocalPath(source);
   if (resolvedPath) {

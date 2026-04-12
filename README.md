@@ -15,7 +15,7 @@ This repository is now structured as a single app at the repo root so it deploys
 ## Summary pipeline
 
 - `POST /api/ocr-extract`: image upload to Paddle OCR `/extract`
-- `POST /api/summarize`: OCR text to Qwen `/ingest` using `PROMPT_SUMMARY_JSON_PATH`
+- `POST /api/summarize`: plain-text OCR input to Qwen `/ingest` using the built-in 6W instruction payload
 
 ## Environment variables
 
@@ -30,7 +30,6 @@ This repository is now structured as a single app at the repo root so it deploys
 Optional source overrides:
 
 - `CANONICALS_BIBLE_JSON_PATH` or `DRIVE_FILE_ID_CANONICALS`
-- `PROMPT_SUMMARY_JSON_PATH` or `PROMPT_SUMMARY_JSON_ID`
 - `DRIVE_ACTIVE_SUBFOLDER_PATH` or `DRIVE_ACTIVE_SUBFOLDER_ID`
 - `PADDLE_OCR_TIMEOUT_MS`
 - `QWEN_HF_TOKEN`

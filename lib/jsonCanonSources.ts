@@ -15,12 +15,6 @@ const resolveJsonSource = (
   return buildLocalPath(localFileName);
 };
 
-export const PROMPT_SUMMARY_SOURCE = resolveJsonSource(
-  process.env.PROMPT_SUMMARY_JSON_PATH,
-  process.env.PROMPT_SUMMARY_JSON_ID,
-  "prompt_summary.json"
-);
-
 export const DRIVE_ACTIVE_SUBFOLDER_SOURCE = resolveJsonSource(
   process.env.DRIVE_ACTIVE_SUBFOLDER_PATH,
   process.env.DRIVE_ACTIVE_SUBFOLDER_ID,
