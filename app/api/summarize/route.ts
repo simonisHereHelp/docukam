@@ -1,5 +1,5 @@
-import { handleSummaryEnhance } from "@/lib/summary/server";
+import { handleSummarize } from "@/lib/summary/server";
 
 export async function POST(req: Request) {
-  return handleSummaryEnhance(req);
+  return handleSummarize(req);
 }

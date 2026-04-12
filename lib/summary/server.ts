@@ -62,7 +62,7 @@ export async function handleOcrExtract(req: Request) {
   }
 }
 
-export async function handleSummaryEnhance(req: Request) {
+export async function handleSummarize(req: Request) {
   const qwenBaseUrl = process.env.QWEN_HF_URL;
   const qwenToken = process.env.QWEN_HF_TOKEN;
 
@@ -102,7 +102,7 @@ export async function handleSummaryEnhance(req: Request) {
 
     if (!response.ok) {
       const message = await response.text().catch(() => "");
-      throw new Error(message || `summary-enhance failed with status ${response.status}`);
+      throw new Error(message || `summarize failed with status ${response.status}`);
     }
 
     const contentType = response.headers.get("content-type") || "";
@@ -117,14 +117,14 @@ export async function handleSummaryEnhance(req: Request) {
 
     return NextResponse.json(
       {
-        backend: "summary-enhance",
+        backend: "summarize",
         summary,
         raw: typeof data === "string" ? null : data,
       },
       { status: 200 },
     );
   } catch (err: any) {
-    console.error("summary-enhance failed:", err);
+    console.error("summarize failed:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

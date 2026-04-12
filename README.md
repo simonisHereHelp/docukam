@@ -15,8 +15,7 @@ This repository is now structured as a single app at the repo root so it deploys
 ## Summary pipeline
 
 - `POST /api/ocr-extract`: image upload to Paddle OCR `/extract`
-- `POST /api/summary-enhance`: OCR text to Qwen `/ingest` using `PROMPT_SUMMARY_JSON_PATH`
-- `POST /api/summary1` and `POST /api/summary2`: compatibility aliases for the same handlers
+- `POST /api/summarize`: OCR text to Qwen `/ingest` using `PROMPT_SUMMARY_JSON_PATH`
 
 ## Environment variables
 
