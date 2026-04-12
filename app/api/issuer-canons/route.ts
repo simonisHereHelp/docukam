@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GPT_Router } from "@/lib/gptRouter";
+import { loadJsonSource } from "@/lib/jsonSource";
 import { CANONICALS_BIBLE_SOURCE } from "@/lib/jsonCanonSources";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export async function GET() {
       );
     }
 
-    const bibleData = await GPT_Router._fetchFile(CANONICALS_BIBLE_SOURCE);
+    const bibleData = await loadJsonSource(CANONICALS_BIBLE_SOURCE);
     const issuers = bibleData?.issuers ?? [];
 
     return NextResponse.json({ issuers });

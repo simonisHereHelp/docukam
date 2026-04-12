@@ -1,11 +1,9 @@
-// app/components/image-capture-dialog-mobile/useImageCaptureState.ts
-
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { WebCameraHandler, FacingMode } from "@/lib/react-web-camera";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { handleSave } from "@/lib/handleSave";
-import { handleSummary } from "@/lib/handleSummary";
+import { runSummaryEnhance, runSummaryExtract } from "@/lib/summary/client";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import {
   CaptureError,
@@ -30,7 +28,6 @@ export const useImageCaptureState = (
   onOpenChange?: (open: boolean) => void,
   initialSource: "camera" | "photos" = "camera",
 ): UseImageCaptureState => {
-  // --- Core State ---
   const [images, setImages] = useState<Image[]>([]);
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isSaving, setIsSaving] = useState(false);
@@ -39,13 +36,10 @@ export const useImageCaptureState = (
   const [cameraError, setCameraError] = useState(false);
   const [captureSource, setCaptureSource] = useState<"camera" | "photos">(initialSource);
 
-  // --- Summary & AI State ---
-  const [draftSummary, setDraftSummary] = useState(""); // Original AI output
-  const [editableSummary, setEditableSummary] = useState(""); // User's working text
-  const [summaryImageUrl, setSummaryImageUrl] = useState<string | null>(null);
-  const [showSummaryOverlay, setShowSummaryOverlay] = useState(false);
+  const [editorMode, setEditorMode] = useState<"raw-text" | "meta-summary">("raw-text");
+  const [ocrSummary, setOcrSummary] = useState("");
+  const [editedSummary, setEditedSummary] = useState("");
 
-  // --- UI Feedback State ---
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [availableSubfolders, setAvailableSubfolders] = useState<SubfolderOption[]>([]);
@@ -53,7 +47,6 @@ export const useImageCaptureState = (
   const [subfolderLoading, setSubfolderLoading] = useState(false);
   const [subfolderError, setSubfolderError] = useState("");
 
-  // --- Canon / Metadata State ---
   const [issuerCanons, setIssuerCanons] = useState<IssuerCanonEntry[]>([]);
   const [issuerCanonsLoading, setIssuerCanonsLoading] = useState(false);
   const [canonError, setCanonError] = useState("");
@@ -63,15 +56,20 @@ export const useImageCaptureState = (
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Keep capture source in sync with props
   useEffect(() => {
     setCaptureSource(initialSource);
   }, [initialSource]);
 
-  // --- Handlers ---
-
   const deleteImage = useCallback((index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const resetSummaryState = useCallback(() => {
+    setEditorMode("raw-text");
+    setOcrSummary("");
+    setEditedSummary("");
+    setSaveMessage("");
+    setError("");
   }, []);
 
   const handleClose = useCallback(() => {
@@ -80,14 +78,9 @@ export const useImageCaptureState = (
         return;
       }
     }
-    // Reset all state
+
     setImages([]);
-    setDraftSummary("");
-    setEditableSummary("");
-    setSummaryImageUrl(null);
-    setError("");
-    setSaveMessage("");
-    setShowSummaryOverlay(false);
+    resetSummaryState();
     setShowGallery(false);
     setAvailableSubfolders([]);
     setSelectedSubfolder(null);
@@ -98,23 +91,20 @@ export const useImageCaptureState = (
     setCaptureSource(initialSource);
     setIsProcessingCapture(false);
     onOpenChange?.(false);
-  }, [images.length, initialSource, isSaving, onOpenChange]);
+  }, [images.length, initialSource, isSaving, onOpenChange, resetSummaryState]);
 
   const ingestFile = useCallback(
     async (file: File, source: "camera" | "photos", preferredName?: string) => {
       setIsProcessingCapture(true);
       setError("");
+
       try {
         const { file: normalizedFile, previewUrl } = await normalizeCapture(file, source, {
           maxFileSize: DEFAULTS.MAX_FILE_SIZE,
           preferredName,
         });
 
-        // Reset summary context for the new set of images
-        setSummaryImageUrl(null);
-        setDraftSummary("");
-        setEditableSummary("");
-        setSaveMessage("");
+        resetSummaryState();
         setShowGallery(false);
         setImages((prev) => [...prev, { url: previewUrl, file: normalizedFile }]);
       } catch (err) {
@@ -123,15 +113,16 @@ export const useImageCaptureState = (
         setIsProcessingCapture(false);
       }
     },
-    [],
+    [resetSummaryState],
   );
 
   const handleCapture = useCallback(async () => {
     if (!cameraRef.current) return;
+
     try {
       const file = await cameraRef.current.capture();
       if (file) await ingestFile(file, "camera", `capture-${Date.now()}.jpeg`);
-    } catch (err) {
+    } catch {
       setError("Unable to access camera capture.");
     }
   }, [ingestFile]);
@@ -151,31 +142,47 @@ export const useImageCaptureState = (
   const handleSummarize = useCallback(async () => {
     setSaveMessage("");
     setError("");
-    
-    const setSummaries = (newSummary: string) => {
-      setDraftSummary(newSummary);
-      setEditableSummary(newSummary); 
-    };
-    
-    const didSummarize = await handleSummary({
+
+    const didExtract = await runSummaryExtract({
       images,
       setIsSaving,
-      setSummary: setSummaries,
-      setSummaryImageUrl,
-      setShowSummaryOverlay,
+      setOcrSummary,
+      setEditedSummary,
       setError,
     });
 
-    if (didSummarize && images.length > 0) {
+    if (didExtract && images.length > 0) {
+      setEditorMode("raw-text");
       setShowGallery(true);
-      playSuccessChime();
     }
   }, [images]);
+
+  const handleEnhance = useCallback(async () => {
+    setSaveMessage("");
+    setError("");
+
+    const rawText = editedSummary.trim() || ocrSummary.trim();
+    if (rawText) {
+      setOcrSummary(rawText);
+    }
+    const didEnhance = await runSummaryEnhance({
+      rawText,
+      setIsSaving,
+      setEditedSummary,
+      setError,
+    });
+
+    if (didEnhance && images.length > 0) {
+      setEditorMode("meta-summary");
+      setShowGallery(true);
+    }
+  }, [editedSummary, ocrSummary, images.length]);
 
   const refreshCanons = useCallback(async () => {
     if (issuerCanonsLoading) return;
     setIssuerCanonsLoading(true);
     setCanonError("");
+
     try {
       const entries = await fetchIssuerCanonList();
       setIssuerCanons(entries);
@@ -190,14 +197,17 @@ export const useImageCaptureState = (
     if (subfolderLoading) return;
     setSubfolderLoading(true);
     setSubfolderError("");
+
     try {
       const response = await fetch("/api/active-subfolders");
       if (!response.ok) {
         throw new Error("Unable to load subfolder options.");
       }
+
       const json = (await response.json().catch(() => null)) as
         | { subfolders?: SubfolderOption[] }
         | null;
+
       setAvailableSubfolders(json?.subfolders ?? []);
     } catch (err) {
       setSubfolderError(err instanceof Error ? err.message : "Unable to load subfolder options.");
@@ -212,16 +222,15 @@ export const useImageCaptureState = (
 
   const selectCanon = useCallback((canon: IssuerCanonEntry) => {
     setSelectedCanon(canon);
-    setEditableSummary((current) =>
+    setEditedSummary((current) =>
       applyCanonToSummary({
         canon,
         currentSummary: current,
-        draftSummary,
+        sourceSummary: ocrSummary,
       }),
     );
-  }, [draftSummary]);
+  }, [ocrSummary]);
 
-  // Auto-refresh canons when gallery opens
   useEffect(() => {
     if (showGallery && !issuerCanons.length && !issuerCanonsLoading) {
       refreshCanons();
@@ -236,8 +245,8 @@ export const useImageCaptureState = (
 
   const handleSaveImages = useCallback(async () => {
     if (!session || isSaving) return;
-    
-    const finalSummary = editableSummary.trim();
+
+    const finalSummary = editedSummary.trim();
     if (!finalSummary) {
       setError("Please ensure the summary is not empty before saving.");
       return;
@@ -248,7 +257,7 @@ export const useImageCaptureState = (
 
     await handleSave({
       images,
-      draftSummary,
+      sourceSummary: ocrSummary,
       finalSummary,
       selectedCanon,
       selectedSubfolder,
@@ -259,7 +268,7 @@ export const useImageCaptureState = (
         const folderPath = topic || targetFolderId?.split("/").pop() || "Drive";
         const displayPath = folderPath.replace(/^Drive_/, "");
         const resolvedName = normalizeFilename(setName || "(untitled)");
-        
+
         sessionStorage.setItem(
           "uploadConfirmation",
           JSON.stringify({ folder: displayPath, filename: resolvedName }),
@@ -267,8 +276,9 @@ export const useImageCaptureState = (
         window.dispatchEvent(new Event("upload-confirmation"));
         setSaveMessage(`uploaded to: ${displayPath} ✅\nname: ${resolvedName} ✅`);
         setImages([]);
-        setDraftSummary("");
-        setEditableSummary("");
+        setEditorMode("raw-text");
+        setOcrSummary("");
+        setEditedSummary("");
         setSelectedCanon(null);
         setSelectedSubfolder(null);
         playSuccessChime();
@@ -280,15 +290,13 @@ export const useImageCaptureState = (
     session,
     isSaving,
     images,
-    draftSummary,
-    editableSummary,
+    ocrSummary,
+    editedSummary,
     selectedCanon,
     selectedSubfolder,
     onOpenChange,
     router,
   ]);
-
-  // --- Aggregate State & Actions ---
 
   const state: State = {
     images,
@@ -298,16 +306,15 @@ export const useImageCaptureState = (
     showGallery,
     cameraError,
     captureSource,
-    draftSummary,
-    editableSummary,
-    summaryImageUrl,
+    editorMode,
+    ocrSummary,
+    editedSummary,
     error,
     saveMessage,
     availableSubfolders,
     selectedSubfolder,
     subfolderLoading,
     subfolderError,
-    showSummaryOverlay,
     issuerCanons,
     issuerCanonsLoading,
     canonError,
@@ -320,11 +327,13 @@ export const useImageCaptureState = (
     handleAlbumSelect,
     handleCameraSwitch,
     handleSummarize,
+    handleEnhance,
     handleSaveImages,
     handleClose,
     setCaptureSource,
-    setEditableSummary,
-    setDraftSummary,
+    setEditorMode,
+    setEditedSummary,
+    setOcrSummary,
     setShowGallery,
     setCameraError,
     setError,

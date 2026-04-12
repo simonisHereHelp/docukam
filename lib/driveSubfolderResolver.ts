@@ -1,8 +1,7 @@
-import { GPT_Router } from "./gptRouter";
+import { loadJsonSource } from "./jsonSource";
 import {
   DRIVE_ACTIVE_SUBFOLDER_SOURCE,
   DRIVE_FALLBACK_FOLDER_ID,
-  PROMPT_DESIGNATED_SUBFOLDER_SOURCE,
 } from "./jsonCanonSources";
 
 interface ActiveSubfolder {
@@ -48,68 +47,15 @@ const findKeywordMatch = (summary: string, subfolders: ActiveSubfolder[]) => {
   );
 };
 
-const fetchPrompt = async () => {
-  try {
-    const promptConfig = await GPT_Router.fetchJsonSource(PROMPT_DESIGNATED_SUBFOLDER_SOURCE);
-    if (!promptConfig?.system || !promptConfig?.user) return null;
-    return promptConfig as { system: string; user: string };
-  } catch (err) {
-    console.warn("Failed to load designated subfolder prompt:", err);
-    return null;
-  }
-};
-
 const fetchActiveSubfolders = async () => {
   try {
-    const config = await GPT_Router.fetchJsonSource(DRIVE_ACTIVE_SUBFOLDER_SOURCE);
+    const config = await loadJsonSource(DRIVE_ACTIVE_SUBFOLDER_SOURCE);
     return normalizeSubfolderConfig(config);
   } catch (err) {
     console.warn("Failed to load active subfolder config:", err);
     return { subfolders: [] };
   }
 };
-
-async function inferTopicFromLLM(
-  summary: string,
-  subfolders: ActiveSubfolder[],
-): Promise<string | null> {
-  const prompt = await fetchPrompt();
-  const apiKey = process.env.OPENAI_API_KEY;
-
-  if (!prompt || !apiKey) return null;
-
-  const topics = subfolders.map((folder) => ({
-    topic: folder.topic,
-    keywords: folder.keywords || [],
-    description: folder.description || "",
-  }));
-
-  const userPrompt = prompt.user
-    .replace("{{SUMMARY}}", summary.trim())
-    .replace("{{TOPICS}}", JSON.stringify(topics));
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: prompt.system },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0,
-      max_tokens: 16,
-    }),
-  });
-
-  if (!res.ok) return null;
-
-  const json = await res.json().catch(() => null);
-  return json?.choices?.[0]?.message?.content?.trim() || null;
-}
 
 export const resolveDriveFolder = async (
   summary: string,
@@ -135,16 +81,6 @@ export const resolveDriveFolder = async (
       BASE_DRIVE_FOLDER_ID,
     );
     return { folderId: folderPath, topic: keywordMatch.topic };
-  }
-
-  const llmTopic = await inferTopicFromLLM(summary, subfolders);
-  const matched = subfolders.find(
-    (entry) => entry.topic.toLowerCase() === (llmTopic || "").toLowerCase(),
-  );
-
-  if (matched) {
-    const folderPath = buildFolderPath(matched.folderId || matched.topic, BASE_DRIVE_FOLDER_ID);
-    return { folderId: folderPath, topic: matched.topic };
   }
 
   return { folderId: fallbackFolderPath, topic: null };

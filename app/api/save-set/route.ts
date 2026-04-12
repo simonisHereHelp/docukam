@@ -1,12 +1,8 @@
-// app/api/save-set/route.ts
 import { NextResponse } from "next/server";
 import { Buffer } from "buffer";
+
 import { driveSaveFiles, resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
-import { GPT_Router } from "@/lib/gptRouter";
-import {
-  DRIVE_FALLBACK_FOLDER_ID,
-  PROMPT_SET_NAME_SOURCE,
-} from "@/lib/jsonCanonSources";
+import { DRIVE_FALLBACK_FOLDER_ID } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import { buildNamingSummary, extractIssuerField } from "@/lib/summaryFields";
@@ -73,76 +69,14 @@ ${images.join("\n\n")}
 
 export const runtime = "nodejs";
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const PROMPT_ID = PROMPT_SET_NAME_SOURCE;
 const BASE_DRIVE_FOLDER_ID = DRIVE_FALLBACK_FOLDER_ID;
 const ROOT_DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
-/**
- * 根據摘要產生檔案名稱標籤
- */
+
 async function deriveSetNameFromSummary(summary: string): Promise<string> {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const issuerName = extractIssuerField(summary);
-  const fallbackTitle = issuerName || "document";
-
-  if (!OPENAI_API_KEY) return `${fallbackTitle}-${datePart}`;
-
-  try {
-    // 1. 使用一致的風格獲取 System 與 User Prompt (注入 Summary)
-    const systemPrompt = await GPT_Router.getSystemPrompt(PROMPT_ID);
-    const userPrompt = await GPT_Router.getUserPrompt(
-        PROMPT_ID, { 
-        summary: summary,
-        wordTarget: 150 // 可選覆蓋
-      });
-
-    // 2. 呼叫 OpenAI 產生名稱
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0,
-        max_tokens: 64,
-      }),
-    });
-
-    if (!res.ok) return `${fallbackTitle}-${datePart}`;
-
-    const data = await res.json();
-    let label = data?.choices?.[0]?.message?.content ?? "";
-    
-    // 3. 檔名清理
-    const safeLabel = label.trim()
-      .replace(/[\\\/:*?"<>|]/g, "-")
-      .replace(/\s+/g, "")
-      .replace(/-+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 80) || fallbackTitle;
-
-    if (issuerName) {
-      const normalizedIssuer = normalizeFilename(issuerName);
-      if (
-        !safeLabel ||
-        safeLabel.toLowerCase() === "document" ||
-        !safeLabel.includes(normalizedIssuer)
-      ) {
-        return `${normalizedIssuer}-${datePart}`;
-      }
-    }
-
-    return `${safeLabel}-${datePart}`;
-  } catch (err) {
-    console.error("deriveSetNameFromSummary failed:", err);
-    return `${fallbackTitle}-${datePart}`;
-  }
+  const fallbackTitle = normalizeFilename(issuerName || "document");
+  return `${fallbackTitle}-${datePart}`;
 }
 
 export async function POST(request: Request) {
@@ -157,6 +91,7 @@ export async function POST(request: Request) {
     const selectedSubfolderRaw = formData.get("selectedSubfolder");
     let selectedCanon: SelectedCanonMeta | null = null;
     let selectedSubfolder: SelectedSubfolderMeta | null = null;
+
     if (typeof selectedCanonRaw === "string") {
       try {
         selectedCanon = (JSON.parse(selectedCanonRaw) as SelectedCanonMeta) ?? null;
@@ -164,6 +99,7 @@ export async function POST(request: Request) {
         console.warn("Unable to parse selectedCanon from request:", err);
       }
     }
+
     if (typeof selectedSubfolderRaw === "string") {
       try {
         selectedSubfolder =
@@ -179,10 +115,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Summary and files are required." }, { status: 400 });
     }
 
-    // ✅ 執行核心命名邏輯 (調用新的 GPT_Router 流程)
     const namingSummary = buildNamingSummary(summary, selectedCanon?.master ?? null);
-    const setName = await deriveSetNameFromSummary(namingSummary);
-    const normalizedSetName = normalizeFilename(setName);
+    const normalizedSetName = normalizeFilename(
+      await deriveSetNameFromSummary(namingSummary),
+    );
 
     const baseFolderId = ROOT_DRIVE_FOLDER_ID || BASE_DRIVE_FOLDER_ID;
     if (!baseFolderId) {
@@ -199,7 +135,6 @@ export async function POST(request: Request) {
       );
       topic = selectedSubfolder.topic;
     } else {
-      // 儲存檔案到 Google Drive (auto-route into active subfolders)
       const resolved = await resolveDriveFolder(summary);
       targetFolderId = resolved.folderId;
       topic = resolved.topic;

@@ -22,14 +22,14 @@ export const fetchIssuerCanonList = async (
 export const applyCanonToSummary = ({
   canon,
   currentSummary,
-  draftSummary,
+  sourceSummary,
 }: {
   canon: IssuerCanonEntry;
   currentSummary: string;
-  draftSummary: string;
+  sourceSummary: string;
 }): string => {
   const baseSummary =
-    currentSummary.trim().length > 0 ? currentSummary : draftSummary;
+    currentSummary.trim().length > 0 ? currentSummary : sourceSummary;
 
   return upsertIssuerField(baseSummary, canon.master);
 };

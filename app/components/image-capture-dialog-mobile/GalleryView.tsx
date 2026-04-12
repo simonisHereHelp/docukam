@@ -1,4 +1,4 @@
-import { Loader2, Save, X, RefreshCw } from "lucide-react";
+import { Loader2, Save, Sparkles, X, RefreshCw } from "lucide-react";
 import { Button } from "@/ui/components";
 import type { State, Actions } from "./types";
 
@@ -34,11 +34,36 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
         {/* Summary Editor Section */}
         <div className="space-y-4">
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-blue-300">EDIT SUMMARY</label>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-blue-300">EDIT SUMMARY</label>
+                <span className="text-[10px] text-white/55">
+                  {state.editorMode === "raw-text"
+                    ? "OCR raw text. Your edits will be used for summarize."
+                    : "Meta summary output. You can refine it and apply issuer canon."}
+                </span>
+              </div>
+              <Button
+                onClick={actions.handleEnhance}
+                disabled={state.isSaving || (!state.ocrSummary.trim() && !state.editedSummary.trim())}
+                className="app-button h-8 px-3"
+              >
+                {state.isSaving ? (
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-3 w-3" />
+                )}
+                <span className="app-button-label">Enhance</span>
+              </Button>
+            </div>
             <textarea
-              value={state.editableSummary}
-              onChange={(e) => actions.setEditableSummary(e.target.value)}
-              placeholder="Add your summary here..."
+              value={state.editedSummary}
+              onChange={(e) => actions.setEditedSummary(e.target.value)}
+              placeholder={
+                state.editorMode === "raw-text"
+                  ? "OCR raw text will appear here. Edit it before summarize."
+                  : "Meta summary output will appear here. You can refine it before saving."
+              }
               className="w-full min-h-[150px] bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
             />
           </div>
@@ -49,6 +74,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
               <span className="text-xs font-bold text-blue-300">ISSUER CANONS</span>
               <button
                 onClick={actions.refreshCanons}
+                disabled={state.editorMode === "raw-text"}
                 className="app-button h-6 w-6 rounded-full flex items-center justify-center"
               >
                 <RefreshCw
@@ -62,6 +88,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                 <button
                   key={canon.master}
                   onClick={() => actions.selectCanon(canon)}
+                  disabled={state.editorMode === "raw-text"}
                   className={`text-[10px] px-3 py-1 rounded-full border transition ${
                     state.selectedCanon?.master === canon.master
                       ? "bg-blue-600 border-blue-400"
@@ -72,6 +99,11 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                 </button>
               ))}
             </div>
+            {state.editorMode === "raw-text" && (
+              <p className="mt-2 text-[10px] text-white/55">
+                Enhance first to turn OCR text into meta summary before applying issuer canon.
+              </p>
+            )}
           </div>
 
           {/* Target Subfolder Selection */}
@@ -112,7 +144,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
       </div>
 
       <div className="p-4 border-t border-white/10">
-        <Button onClick={actions.handleSaveImages} disabled={state.isSaving || !state.editableSummary.trim()} className="app-button w-full h-12">
+        <Button onClick={actions.handleSaveImages} disabled={state.isSaving || !state.editedSummary.trim()} className="app-button w-full h-12">
           {state.isSaving ? (
             <Loader2 className="animate-spin mr-2" />
           ) : (

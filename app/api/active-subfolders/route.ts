@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GPT_Router } from "@/lib/gptRouter";
+import { loadJsonSource } from "@/lib/jsonSource";
 import { DRIVE_ACTIVE_SUBFOLDER_SOURCE } from "@/lib/jsonCanonSources";
 
 interface ActiveSubfolder {
@@ -22,7 +22,7 @@ const normalizeSubfolderConfig = (config: unknown): ActiveSubfolder[] => {
 
 export async function GET() {
   try {
-    const config = await GPT_Router.fetchJsonSource(DRIVE_ACTIVE_SUBFOLDER_SOURCE);
+    const config = await loadJsonSource(DRIVE_ACTIVE_SUBFOLDER_SOURCE);
     const subfolders = normalizeSubfolderConfig(config);
     return NextResponse.json({ subfolders }, { status: 200 });
   } catch (error) {

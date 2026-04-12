@@ -27,18 +27,15 @@ test("fetchIssuerCanonList returns issuers from API payload", async () => {
   assert.deepEqual(issuers[0].aliases, ["Mega", "MG"]);
 });
 
-test("applyCanonToSummary seeds empty summary with canon and draft", () => {
-  const draftSummary = "Existing heading\nBody text";
+test("applyCanonToSummary seeds empty summary with canon and source summary", () => {
+  const sourceSummary = "Existing heading\nBody text";
   const updated = applyCanonToSummary({
     canon: sampleCanon,
     currentSummary: "",
-    draftSummary,
+    sourceSummary,
   });
 
-  assert.equal(
-    updated,
-    "單位: Mega Bank\nExisting heading\nBody text",
-  );
+  assert.equal(updated, "單位: Mega Bank\nExisting heading\nBody text");
 });
 
 test("applyCanonToSummary avoids duplicating existing canon", () => {
@@ -46,7 +43,7 @@ test("applyCanonToSummary avoids duplicating existing canon", () => {
   const updated = applyCanonToSummary({
     canon: sampleCanon,
     currentSummary: existing,
-    draftSummary: "",
+    sourceSummary: "",
   });
 
   assert.equal(updated, existing.trim());
@@ -56,37 +53,28 @@ test("applyCanonToSummary prepends canon when missing", () => {
   const updated = applyCanonToSummary({
     canon: sampleCanon,
     currentSummary: "Other summary line\nSecond line",
-    draftSummary: "",
+    sourceSummary: "",
   });
 
-  assert.equal(
-    updated,
-    "單位: Mega Bank\nOther summary line\nSecond line",
-  );
+  assert.equal(updated, "單位: Mega Bank\nOther summary line\nSecond line");
 });
 
 test("applyCanonToSummary replaces older registry lines", () => {
   const updated = applyCanonToSummary({
     canon: { master: "New Canon" },
     currentSummary: "單位: Old Canon\nExisting text",
-    draftSummary: "單位: Older Canon\nDraft body",
+    sourceSummary: "單位: Older Canon\nDraft body",
   });
 
-  assert.equal(
-    updated,
-    "單位: New Canon\nExisting text",
-  );
+  assert.equal(updated, "單位: New Canon\nExisting text");
 });
 
 test("applyCanonToSummary keeps existing spacing intact", () => {
   const updated = applyCanonToSummary({
     canon: sampleCanon,
     currentSummary: "Lead line\n\nDetails below",
-    draftSummary: "",
+    sourceSummary: "",
   });
 
-  assert.equal(
-    updated,
-    "單位: Mega Bank\nLead line\n\nDetails below",
-  );
+  assert.equal(updated, "單位: Mega Bank\nLead line\n\nDetails below");
 });

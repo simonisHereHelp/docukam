@@ -22,10 +22,9 @@ export interface State {
   showGallery: boolean;
   cameraError: boolean;
   captureSource: "camera" | "photos";
-  draftSummary: string;     // The original AI output
-  editableSummary: string;  // What the user sees and edits
-  summaryImageUrl: string | null;
-  showSummaryOverlay: boolean;
+  editorMode: "raw-text" | "meta-summary";
+  ocrSummary: string;
+  editedSummary: string;
   error: string;
   saveMessage: string;
   availableSubfolders: SubfolderOption[];
@@ -44,11 +43,13 @@ export interface Actions {
   handleCameraSwitch: () => Promise<void>;
   handleAlbumSelect: (files: FileList | null) => Promise<void>;
   handleSummarize: () => Promise<void>;
+  handleEnhance: () => Promise<void>;
   handleSaveImages: () => Promise<void>;
   handleClose: () => void;
   setCaptureSource: (source: "camera" | "photos") => void;
-  setEditableSummary: (summary: string) => void;
-  setDraftSummary: (summary: string) => void;
+  setEditorMode: (mode: "raw-text" | "meta-summary") => void;
+  setEditedSummary: (summary: string) => void;
+  setOcrSummary: (summary: string) => void;
   setShowGallery: (show: boolean) => void;
   setCameraError: (error: boolean) => void;
   setError: (message: string) => void;

@@ -21,24 +21,6 @@ export const PROMPT_SUMMARY_SOURCE = resolveJsonSource(
   "prompt_summary.json"
 );
 
-export const PROMPT_ISSUER_CANON_SOURCE = resolveJsonSource(
-  process.env.PROMPT_ISSUER_CANON_JSON_PATH,
-  process.env.PROMPT_ISSUER_CANON_JSON_ID,
-  "prompts_issuerCanon.json"
-);
-
-export const PROMPT_SET_NAME_SOURCE = resolveJsonSource(
-  process.env.PROMPT_SET_NAME_JSON_PATH,
-  process.env.PROMPT_SET_NAME_JSON_ID,
-  "prompts_setName.json"
-);
-
-export const PROMPT_DESIGNATED_SUBFOLDER_SOURCE = resolveJsonSource(
-  process.env.PROMPT_DESIGNATED_SUBFOLDER,
-  process.env.PROMPT_DESIGNATED_SUBFOLDER_ID,
-  "prompt_designated_subfolder.json",
-);
-
 export const DRIVE_ACTIVE_SUBFOLDER_SOURCE = resolveJsonSource(
   process.env.DRIVE_ACTIVE_SUBFOLDER_PATH,
   process.env.DRIVE_ACTIVE_SUBFOLDER_ID,
