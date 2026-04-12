@@ -22,11 +22,19 @@ export async function handleOcrExtract(req: Request) {
   try {
     const incomingFormData = await req.formData();
     const outgoingFormData = new FormData();
+    let fileCount = 0;
 
-    for (const image of incomingFormData.getAll("image")) {
-      if (image instanceof File) {
-        outgoingFormData.append("image", image);
+    for (const fieldName of ["files", "image"]) {
+      for (const upload of incomingFormData.getAll(fieldName)) {
+        if (upload instanceof File) {
+          outgoingFormData.append("files", upload, upload.name);
+          fileCount += 1;
+        }
       }
+    }
+
+    if (fileCount === 0) {
+      return NextResponse.json({ error: "At least one file is required." }, { status: 400 });
     }
 
     const response = await fetch(buildEndpoint(paddleBaseUrl, "/extract"), {
