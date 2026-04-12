@@ -36,7 +36,9 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-blue-300">EDIT SUMMARY</label>
+                <label className="text-xs font-bold text-blue-300">
+                  {state.editorMode === "raw-text" ? "EDIT OCR TEXT" : "EDIT SUMMARY"}
+                </label>
                 <span className="text-[10px] text-white/55">
                   {state.editorMode === "raw-text"
                     ? "OCR raw text. Your edits will be used for summarize."
@@ -53,7 +55,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                 ) : (
                   <Sparkles className="mr-2 h-3 w-3" />
                 )}
-                <span className="app-button-label">Enhance</span>
+                <span className="app-button-label">Summarize</span>
               </Button>
             </div>
             <textarea
@@ -144,13 +146,23 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
       </div>
 
       <div className="p-4 border-t border-white/10">
-        <Button onClick={actions.handleSaveImages} disabled={state.isSaving || !state.editedSummary.trim()} className="app-button w-full h-12">
+        <Button
+          onClick={actions.handleSaveImages}
+          disabled={
+            state.isSaving ||
+            state.editorMode !== "meta-summary" ||
+            !state.editedSummary.trim()
+          }
+          className="app-button w-full h-12"
+        >
           {state.isSaving ? (
             <Loader2 className="animate-spin mr-2" />
           ) : (
             <Save className="mr-2" />
           )}{" "}
-          <span className="app-button-label">Save to Drive</span>
+          <span className="app-button-label">
+            {state.editorMode === "meta-summary" ? "Save to Drive" : "Enhance to Enable Save"}
+          </span>
         </Button>
       </div>
     </div>

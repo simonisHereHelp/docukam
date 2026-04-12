@@ -3,7 +3,7 @@ import type { WebCameraHandler, FacingMode } from "@/lib/react-web-camera";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { handleSave } from "@/lib/handleSave";
-import { runSummaryEnhance, runSummaryExtract } from "@/lib/summary/client";
+import { runSummaryEnhance, runSummaryExtract } from "@/lib/summarize_client";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import {
   CaptureError,

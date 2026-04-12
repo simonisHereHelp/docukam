@@ -106,7 +106,7 @@ export function CameraView({ state, actions, cameraRef }: CameraViewProps) {
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}{" "}
-          <span className="app-button-label">Summarize</span>
+          <span className="app-button-label">OCR xtract</span>
         </Button>
       </div>
 

@@ -80,20 +80,37 @@ export async function handleSummarize(req: Request) {
 
   try {
     const body = (await req.json().catch(() => null)) as
-      | { rawText?: string; wordTarget?: number }
+      | { rawText?: string; markdown?: string; plainText?: string; wordTarget?: number }
       | null;
 
-    const rawText = body?.rawText?.trim() ?? "";
-    if (!rawText) {
+    const editedRawText =
+      body?.plainText?.trim() ??
+      body?.markdown?.trim() ??
+      body?.rawText?.trim() ??
+      "";
+
+    if (!editedRawText) {
       return NextResponse.json({ error: "Missing rawText" }, { status: 400 });
     }
 
     const prompt = await loadPromptSource(PROMPT_SUMMARY_SOURCE);
     const systemPrompt = prompt.system;
     const userPrompt = renderPromptTemplate(prompt.user, {
-      SUMMARY: rawText,
+      SUMMARY: editedRawText,
       wordTarget: body?.wordTarget ?? prompt.wordTarget ?? 180,
+      日期: "",
+      單位: "",
     });
+
+    const ingestPayload = {
+      plainText: editedRawText,
+      markdown: editedRawText,
+      title: "",
+      abstract: "",
+      pages: [],
+      systemPrompt,
+      userPrompt,
+    };
 
     const response = await fetch(`${qwenBaseUrl.replace(/\/+$/, "")}/ingest`, {
       method: "POST",
@@ -101,11 +118,7 @@ export async function handleSummarize(req: Request) {
         "Content-Type": "application/json",
         ...(qwenToken ? { Authorization: `Bearer ${qwenToken}` } : {}),
       },
-      body: JSON.stringify({
-        rawText,
-        systemPrompt,
-        userPrompt,
-      }),
+      body: JSON.stringify(ingestPayload),
     });
 
     if (!response.ok) {
@@ -113,21 +126,22 @@ export async function handleSummarize(req: Request) {
       throw new Error(message || `summarize failed with status ${response.status}`);
     }
 
-    const contentType = response.headers.get("content-type") || "";
-    const data = contentType.includes("application/json")
-      ? await response.json().catch(() => null)
-      : await response.text().catch(() => "");
+    const data = (await response.json().catch(() => null)) as
+      | {
+          normalizedText?: string;
+          abstractSummary?: string;
+          issuer_name?: string;
+          documentDate?: string;
+        }
+      | null;
 
-    const summary =
-      typeof data === "string"
-        ? data
-        : data?.markdown ?? data?.summary ?? data?.content ?? "";
+    const summary = data?.normalizedText?.trim() || data?.abstractSummary?.trim() || "";
 
     return NextResponse.json(
       {
         backend: "summarize",
         summary,
-        raw: typeof data === "string" ? null : data,
+        raw: data,
       },
       { status: 200 },
     );

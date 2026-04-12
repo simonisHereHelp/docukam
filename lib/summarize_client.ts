@@ -1,4 +1,4 @@
-import { playSuccessChime } from "../../app/components/image-capture-dialog-mobile/soundEffects";
+import { playSuccessChime } from "../app/components/image-capture-dialog-mobile/soundEffects";
 
 export interface SummaryImage {
   url: string;
