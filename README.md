@@ -133,6 +133,13 @@ Current JSON sidecar shape:
 }
 ```
 
+## Failed Model Attempts
+
+### `image-2-6W`
+
+- `Pix2Struct_base`
+  OCR-free approach, but it produced poor Chinese text results and incoherent 6W responses.
+
 ## Frontend Notes
 
 - `OCR xtract` runs `/api/ocr-extract`

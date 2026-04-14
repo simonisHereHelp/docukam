@@ -93,6 +93,60 @@ export const runSummaryExtract = async ({
   }
 };
 
+export const runImageTo6WExtract = async ({
+  images,
+  setIsSaving,
+  setOcrSummary,
+  setEditedSummary,
+  setError,
+}: {
+  images: SummaryImage[];
+  setIsSaving: (isSaving: boolean) => void;
+  setOcrSummary: (summary: string) => void;
+  setEditedSummary: (summary: string) => void;
+  setError: (message: string) => void;
+}): Promise<boolean> => {
+  if (images.length === 0) return false;
+
+  setIsSaving(true);
+  setError("");
+
+  try {
+    const formData = new FormData();
+    images.forEach((image) => {
+      formData.append("image", image.file);
+    });
+
+    const response = await fetch("/api/img-2-6w", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new Error(message || "Failed to run img-2-6w.");
+    }
+
+    const data = (await response.json()) as { summary?: string };
+    const extractedSummary = (data.summary || "").trim();
+
+    if (!extractedSummary) {
+      throw new Error("No img-2-6w output was returned.");
+    }
+
+    setOcrSummary(extractedSummary);
+    setEditedSummary(extractedSummary);
+    playSuccessChime();
+    return true;
+  } catch (error) {
+    console.error("Failed to run img-2-6w:", error);
+    setError("Unable to run the temporary image-to-6W route.");
+    return false;
+  } finally {
+    setIsSaving(false);
+  }
+};
+
 export const runSummaryEnhance = async ({
   rawText,
   setIsSaving,

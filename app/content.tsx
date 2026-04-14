@@ -69,9 +69,12 @@ function Content() {
             <Camera className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
           <h1 className="mb-4 text-4xl font-bold text-slate-800 dark:text-slate-100">
-            DocuKam
+            Doc-to-6Ws
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-slate-600 dark:text-slate-400">
+          <p className="mx-auto max-w-2xl text-base text-slate-500 dark:text-slate-400">
+            repo&apos;s: docuKam, 8ball-docuKam
+          </p>
+          <p className="mx-auto mt-2 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
             Google Login: {session ? "Connected" : "Not connected"}
           </p>
           {!session ? (
@@ -111,7 +114,7 @@ function Content() {
                   </div>
                 ) : (
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Kapture Docs. Kprep for RAG.
+                    repo&apos;s: docuKam, 8ball-docuKam
                   </p>
                 )}
               </div>

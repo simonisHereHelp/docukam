@@ -3,7 +3,11 @@ import type { WebCameraHandler, FacingMode } from "@/lib/react-web-camera";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { handleSave } from "@/lib/handleSave";
-import { runSummaryEnhance, runSummaryExtract } from "@/lib/summarize_client";
+import {
+  runImageTo6WExtract,
+  runSummaryEnhance,
+  runSummaryExtract,
+} from "@/lib/summarize_client";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import {
   CaptureError,
@@ -178,6 +182,24 @@ export const useImageCaptureState = (
     }
   }, [editedSummary, ocrSummary, images.length]);
 
+  const handleImg2SixW = useCallback(async () => {
+    setSaveMessage("");
+    setError("");
+
+    const didExtract = await runImageTo6WExtract({
+      images,
+      setIsSaving,
+      setOcrSummary,
+      setEditedSummary,
+      setError,
+    });
+
+    if (didExtract && images.length > 0) {
+      setEditorMode("raw-text");
+      setShowGallery(true);
+    }
+  }, [images]);
+
   const refreshCanons = useCallback(async () => {
     if (issuerCanonsLoading) return;
     setIssuerCanonsLoading(true);
@@ -327,6 +349,7 @@ export const useImageCaptureState = (
     handleAlbumSelect,
     handleCameraSwitch,
     handleSummarize,
+    handleImg2SixW,
     handleEnhance,
     handleSaveImages,
     handleClose,
