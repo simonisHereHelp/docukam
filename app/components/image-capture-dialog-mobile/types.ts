@@ -19,6 +19,8 @@ export interface State {
   facingMode: FacingMode;
   isSaving: boolean;
   isProcessingCapture: boolean;
+  isModelReady: boolean;
+  isCheckingModelReady: boolean;
   showGallery: boolean;
   cameraError: boolean;
   captureSource: "camera" | "photos";
@@ -47,6 +49,7 @@ export interface Actions {
   setCaptureSource: (source: "camera" | "photos") => void;
   setEditedSummary: (summary: string) => void;
   setSourceSummary: (summary: string) => void;
+  setModelReady: (ready: boolean) => void;
   setShowGallery: (show: boolean) => void;
   setCameraError: (error: boolean) => void;
   setError: (message: string) => void;

@@ -32,6 +32,8 @@ export const useImageCaptureState = (
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessingCapture, setIsProcessingCapture] = useState(false);
+  const [isModelReady, setModelReady] = useState(false);
+  const [isCheckingModelReady, setIsCheckingModelReady] = useState(true);
   const [showGallery, setShowGallery] = useState(false);
   const [cameraError, setCameraError] = useState(false);
   const [captureSource, setCaptureSource] = useState<"camera" | "photos">(initialSource);
@@ -58,6 +60,60 @@ export const useImageCaptureState = (
   useEffect(() => {
     setCaptureSource(initialSource);
   }, [initialSource]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let warmupRequested = false;
+
+    const pollReady = async () => {
+      if (cancelled) return;
+
+      setIsCheckingModelReady(true);
+
+      try {
+        const response = await fetch("/api/img-2-6w-ready", {
+          method: "GET",
+          cache: "no-store",
+        });
+        const json = (await response.json().catch(() => null)) as
+          | { ready?: boolean }
+          | null;
+
+        if (cancelled) return;
+
+        if (json?.ready) {
+          setModelReady(true);
+          setIsCheckingModelReady(false);
+          return;
+        }
+
+        if (!warmupRequested) {
+          warmupRequested = true;
+          await fetch("/api/img-2-6w-warmup", {
+            method: "POST",
+            cache: "no-store",
+          }).catch(() => null);
+        }
+
+        setModelReady(false);
+        setIsCheckingModelReady(false);
+        pollTimer = setTimeout(pollReady, 5000);
+      } catch {
+        if (cancelled) return;
+        setModelReady(false);
+        setIsCheckingModelReady(false);
+        pollTimer = setTimeout(pollReady, 5000);
+      }
+    };
+
+    void pollReady();
+
+    return () => {
+      cancelled = true;
+      if (pollTimer) clearTimeout(pollTimer);
+    };
+  }, []);
 
   const deleteImage = useCallback((index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
@@ -278,6 +334,8 @@ export const useImageCaptureState = (
     facingMode,
     isSaving,
     isProcessingCapture,
+    isModelReady,
+    isCheckingModelReady,
     showGallery,
     cameraError,
     captureSource,
@@ -306,6 +364,7 @@ export const useImageCaptureState = (
     setCaptureSource,
     setEditedSummary,
     setSourceSummary,
+    setModelReady,
     setShowGallery,
     setCameraError,
     setError,

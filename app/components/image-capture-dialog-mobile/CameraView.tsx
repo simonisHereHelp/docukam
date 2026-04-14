@@ -98,15 +98,26 @@ export function CameraView({ state, actions, cameraRef }: CameraViewProps) {
         </Button>
         <Button
           onClick={actions.handleImg2SixW}
-          disabled={state.images.length === 0 || state.isSaving}
+          disabled={
+            state.images.length === 0 ||
+            state.isSaving ||
+            state.isCheckingModelReady ||
+            !state.isModelReady
+          }
           className="app-button flex-1"
         >
-          {state.isSaving ? (
+          {state.isSaving || state.isCheckingModelReady ? (
             <Loader2 className="mr-2 animate-spin" />
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}{" "}
-          <span className="app-button-label">Xtract</span>
+          <span className="app-button-label">
+            {state.isCheckingModelReady
+              ? "Warming..."
+              : state.isModelReady
+                ? "Xtract"
+                : "Model Loading"}
+          </span>
         </Button>
       </div>
 
