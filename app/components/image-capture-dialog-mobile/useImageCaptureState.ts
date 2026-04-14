@@ -3,11 +3,7 @@ import type { WebCameraHandler, FacingMode } from "@/lib/react-web-camera";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { handleSave } from "@/lib/handleSave";
-import {
-  runImageTo6WExtract,
-  runSummaryEnhance,
-  runSummaryExtract,
-} from "@/lib/summarize_client";
+import { runImgToSixWExtract } from "@/lib/imgToSixW_client";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import {
   CaptureError,
@@ -40,8 +36,7 @@ export const useImageCaptureState = (
   const [cameraError, setCameraError] = useState(false);
   const [captureSource, setCaptureSource] = useState<"camera" | "photos">(initialSource);
 
-  const [editorMode, setEditorMode] = useState<"raw-text" | "meta-summary">("raw-text");
-  const [ocrSummary, setOcrSummary] = useState("");
+  const [sourceSummary, setSourceSummary] = useState("");
   const [editedSummary, setEditedSummary] = useState("");
 
   const [error, setError] = useState("");
@@ -69,8 +64,7 @@ export const useImageCaptureState = (
   }, []);
 
   const resetSummaryState = useCallback(() => {
-    setEditorMode("raw-text");
-    setOcrSummary("");
+    setSourceSummary("");
     setEditedSummary("");
     setSaveMessage("");
     setError("");
@@ -143,59 +137,19 @@ export const useImageCaptureState = (
     setFacingMode(newMode);
   }, [facingMode]);
 
-  const handleSummarize = useCallback(async () => {
-    setSaveMessage("");
-    setError("");
-
-    const didExtract = await runSummaryExtract({
-      images,
-      setIsSaving,
-      setOcrSummary,
-      setEditedSummary,
-      setError,
-    });
-
-    if (didExtract && images.length > 0) {
-      setEditorMode("raw-text");
-      setShowGallery(true);
-    }
-  }, [images]);
-
-  const handleEnhance = useCallback(async () => {
-    setSaveMessage("");
-    setError("");
-
-    const rawText = editedSummary.trim() || ocrSummary.trim();
-    if (rawText) {
-      setOcrSummary(rawText);
-    }
-    const didEnhance = await runSummaryEnhance({
-      rawText,
-      setIsSaving,
-      setEditedSummary,
-      setError,
-    });
-
-    if (didEnhance && images.length > 0) {
-      setEditorMode("meta-summary");
-      setShowGallery(true);
-    }
-  }, [editedSummary, ocrSummary, images.length]);
-
   const handleImg2SixW = useCallback(async () => {
     setSaveMessage("");
     setError("");
 
-    const didExtract = await runImageTo6WExtract({
+    const didExtract = await runImgToSixWExtract({
       images,
       setIsSaving,
-      setOcrSummary,
+      setSourceSummary,
       setEditedSummary,
       setError,
     });
 
     if (didExtract && images.length > 0) {
-      setEditorMode("raw-text");
       setShowGallery(true);
     }
   }, [images]);
@@ -248,10 +202,10 @@ export const useImageCaptureState = (
       applyCanonToSummary({
         canon,
         currentSummary: current,
-        sourceSummary: ocrSummary,
+        sourceSummary,
       }),
     );
-  }, [ocrSummary]);
+  }, [sourceSummary]);
 
   useEffect(() => {
     if (showGallery && !issuerCanons.length && !issuerCanonsLoading) {
@@ -279,7 +233,7 @@ export const useImageCaptureState = (
 
     await handleSave({
       images,
-      sourceSummary: ocrSummary,
+      sourceSummary,
       finalSummary,
       selectedCanon,
       selectedSubfolder,
@@ -296,10 +250,9 @@ export const useImageCaptureState = (
           JSON.stringify({ folder: displayPath, filename: resolvedName }),
         );
         window.dispatchEvent(new Event("upload-confirmation"));
-        setSaveMessage(`uploaded to: ${displayPath} ✅\nname: ${resolvedName} ✅`);
+        setSaveMessage(`uploaded to: ${displayPath}\nname: ${resolvedName}`);
         setImages([]);
-        setEditorMode("raw-text");
-        setOcrSummary("");
+        setSourceSummary("");
         setEditedSummary("");
         setSelectedCanon(null);
         setSelectedSubfolder(null);
@@ -312,7 +265,7 @@ export const useImageCaptureState = (
     session,
     isSaving,
     images,
-    ocrSummary,
+    sourceSummary,
     editedSummary,
     selectedCanon,
     selectedSubfolder,
@@ -328,8 +281,7 @@ export const useImageCaptureState = (
     showGallery,
     cameraError,
     captureSource,
-    editorMode,
-    ocrSummary,
+    sourceSummary,
     editedSummary,
     error,
     saveMessage,
@@ -348,15 +300,12 @@ export const useImageCaptureState = (
     handleCapture,
     handleAlbumSelect,
     handleCameraSwitch,
-    handleSummarize,
     handleImg2SixW,
-    handleEnhance,
     handleSaveImages,
     handleClose,
     setCaptureSource,
-    setEditorMode,
     setEditedSummary,
-    setOcrSummary,
+    setSourceSummary,
     setShowGallery,
     setCameraError,
     setError,

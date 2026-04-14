@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "DocuKam",
-    short_name: "DocuKam",
-    description: "Capture, summarize, and file documents into Google Drive.",
+    name: "Doc-to-6Ws",
+    short_name: "Doc-to-6Ws",
+    description: "Capture document images, extract 6W statements, and file them into Google Drive.",
     start_url: "/",
     display: "standalone",
     background_color: "#0f172a",

@@ -22,8 +22,7 @@ export interface State {
   showGallery: boolean;
   cameraError: boolean;
   captureSource: "camera" | "photos";
-  editorMode: "raw-text" | "meta-summary";
-  ocrSummary: string;
+  sourceSummary: string;
   editedSummary: string;
   error: string;
   saveMessage: string;
@@ -42,15 +41,12 @@ export interface Actions {
   handleCapture: () => Promise<void>;
   handleCameraSwitch: () => Promise<void>;
   handleAlbumSelect: (files: FileList | null) => Promise<void>;
-  handleSummarize: () => Promise<void>;
   handleImg2SixW: () => Promise<void>;
-  handleEnhance: () => Promise<void>;
   handleSaveImages: () => Promise<void>;
   handleClose: () => void;
   setCaptureSource: (source: "camera" | "photos") => void;
-  setEditorMode: (mode: "raw-text" | "meta-summary") => void;
   setEditedSummary: (summary: string) => void;
-  setOcrSummary: (summary: string) => void;
+  setSourceSummary: (summary: string) => void;
   setShowGallery: (show: boolean) => void;
   setCameraError: (error: boolean) => void;
   setError: (message: string) => void;

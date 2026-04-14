@@ -71,9 +71,6 @@ function Content() {
           <h1 className="mb-4 text-4xl font-bold text-slate-800 dark:text-slate-100">
             Doc-to-6Ws
           </h1>
-          <p className="mx-auto max-w-2xl text-base text-slate-500 dark:text-slate-400">
-            repo&apos;s: docuKam, 8ball-docuKam
-          </p>
           <p className="mx-auto mt-2 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
             Google Login: {session ? "Connected" : "Not connected"}
           </p>

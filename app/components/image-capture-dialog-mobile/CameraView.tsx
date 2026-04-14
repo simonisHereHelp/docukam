@@ -97,18 +97,6 @@ export function CameraView({ state, actions, cameraRef }: CameraViewProps) {
           <X className="mr-2 h-4 w-4" /> <span className="app-button-label">Cancel</span>
         </Button>
         <Button
-          onClick={actions.handleSummarize}
-          disabled={state.images.length === 0}
-          className="app-button flex-1"
-        >
-          {state.isSaving ? (
-            <Loader2 className="mr-2 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-4 w-4" />
-          )}{" "}
-          <span className="app-button-label">OCR xtract</span>
-        </Button>
-        <Button
           onClick={actions.handleImg2SixW}
           disabled={state.images.length === 0 || state.isSaving}
           className="app-button flex-1"

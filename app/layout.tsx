@@ -3,8 +3,8 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DocuKam",
-  description: "Capture, summarize, and file documents into Google Drive.",
+  title: "Doc-to-6Ws",
+  description: "Capture document images, extract 6W statements, and file them into Google Drive.",
 };
 
 export default function RootLayout({

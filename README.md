@@ -1,154 +1,62 @@
-# DocuKam
+# Doc-to-6Ws
 
-DocuKam is the Next.js front end for a two-step document pipeline:
+This repo is the active 6W variant of the DocuKam project.
 
-1. `/api/ocr-extract` sends document images to a Paddle-OCR service and returns plain text.
-2. `/api/summarize` sends that plain text to a Qwen service and returns a Chinese-labeled 6W summary.
+It is a Next.js app that:
 
-This repo owns the browser UI, the API proxy routes, and the Google Drive save flow.
+- captures or selects document images
+- sends images to an image-to-6W service
+- lets the user edit the returned 6W text
+- lets Issuer Canon overwrite the `單位` field
+- saves the final result plus source images to Google Drive
 
-## Final Workflow
+## Current Runtime Flow
 
-1. Launch camera or open the photo album.
-2. Capture or choose one or more images.
-3. Run `OCR xtract` to produce one combined plain-text OCR result.
-4. Edit the OCR text if needed.
-5. Run `Summarize` to produce one combined 6W summary.
-6. Edit the 6W summary if needed.
-7. Save the set to Google Drive.
+1. Open `Launch Camera` or `Photo Album`
+2. Capture or choose one or more images
+3. Run `Xtract`
+4. Review and edit the returned 6W text in the album editor
+5. Optionally apply an issuer canon to overwrite `單位`
+6. Save to Drive
 
-Only the `Launch Camera` path should request camera access.
+## Active API Route
 
-## Service Split
+### `/api/img-2-6w`
 
-### `/api/ocr-extract`
-
-- Runtime role: image-to-text OCR
-- Backend target: local Paddle-OCR service
-- Deployment target: `lenovo.ishere.help`
 - Input: uploaded image files
-- Output: plain text
+- Backend target: `IMG_2_6W_URL`
+- Output: 6W plain text
 
-Request flow:
-
-- Next route: `app/api/ocr-extract/route.ts`
-- Shared server adapter: `lib/model_service.ts`
-
-Response shape:
-
-```json
-{
-  "backend": "ocr-extract",
-  "plainText": "Page 1\n\n同時請領 老年年金給付申請書及給付收據(月領) ...",
-  "raw": {
-    "plainText": "Page 1\n\n同時請領 老年年金給付申請書及給付收據(月領) ..."
-  }
-}
-```
-
-Example plain-text OCR output:
+Current normalized output format:
 
 ```text
-Page 1
-
-同時請領 老年年金給付申請書及給付收據(月領) 國民年金保險 交理 就 編號 填表日期 （填表前情詳閱費面說明） | 交理 編號
-被 保 | 姓名 | 陳獻堂 | 出 生 日期 | 民團49年2月26日
-銀 | 郵區號： 話：（ 0970139001 行動電話 | 前述地址烏：（勾遇）
-您 人 | 址 | 鄭鎮 新生面 1 © 聯 村 6212元 樓 市區 裏 街 奔
-中請金額 | 勞工保險 老年年金給付 （依勞保年資計算）
-醫入戶 （ 一勾港 | ..0.0 請將申請人之存薄封面影本黏貼於背面
+單位: ...
+收件人: ...
+日期: ...
+主題: ...
+地點: ...
+abstract_summary: ...
 ```
 
-Source service repo:
+If multiple images are uploaded, the route calls the service once per image and joins the returned 6W blocks into one editor payload.
 
-- Local source repo: `D:\paddle-ocr`
-- Downstream packaging target: Docker Hub repo
+## Active Frontend Flow
 
-### `/api/summarize`
+- Camera action button: `Xtract`
+- Album editor label: `EDIT 6Ws`
+- Issuer Canon behavior: overwrite the `單位` line in the current text
+- Save button: enabled whenever edited 6W text exists
 
-- Runtime role: plain-text document summarization
-- Backend target: Hugging Face Qwen service
-- Deployment target: `99c-bagel-qwen.hf.space`
-- Input: JSON payload with:
-  - `instruction`
-  - `input`
-- Output: plain-text 6W summary
+## Save Output
 
-Request flow:
-
-- Next route: `app/api/summarize/route.ts`
-- Shared server adapter: `lib/model_service.ts`
-
-The summarize route sends the OCR plain text to Qwen with a fixed instruction focused on:
-
-- `單位`
-- `收件人`
-- `日期`
-- `主題`
-- `地點`
-- `abstract_summary`
-
-Editor display uses only the parsed 6W section, not the diagnostic preamble returned by the model service.
-
-Example 6W output:
-
-```text
-單位: 未識別
-收件人: 未識別
-日期: 未識別
-主題: 未識別
-地點: 未識別
-abstract_summary: 重點內容包括：Page 1；同時請領 老年年金給付申請書及給付收據(月領) 國民年金保險 交理 就 編號 填表日期 （填表前情詳閱費面說明） | 交理 編號；被 保 | 姓名 | 陳獻堂 | 出 生 日期 | 民團49年2月26日；銀 | 郵區號： 話：（ 0970139001 行動電話 | 前述地址烏：（勾遇）；您 人 | 址 | 鄭鎮 新生面 1 © 聯 村 6212元 樓 市區 裏 街 奔；醫入戶 （ 一勾港 | ..0.0 請將申請人之存薄封面影本黏貼於背面。
-```
-
-Source service repo:
-
-- Local source repo: `D:\qwen-hugface`
-- Deployment target: Hugging Face Space `99cent.bagel`
-
-## Save-to-Drive Output
-
-Each saved document set uploads three artifact types:
+Each saved set currently uploads:
 
 - `xxxx.md`
-  Master note containing the final 6W summary and asset links
+  final edited 6W text and image links
 - `xxxx.json`
-  OCR-extracted plain text in JSON format
+  JSON sidecar built from the source text currently held by the app
 - `xxxx-p1.jpeg`, `xxxx-p2.jpeg`, ...
-  Source document images
-
-The markdown file links to the JSON sidecar:
-
-```md
-## json reference
-
-[xxxx.json](./xxxx.json)
-```
-
-Current JSON sidecar shape:
-
-```json
-{
-  "plainText": "Page 1\n\n..."
-}
-```
-
-## Failed Model Attempts
-
-### `image-2-6W`
-
-- `Pix2Struct_base`
-  OCR-free approach, but it produced poor Chinese text results and incoherent 6W responses.
-
-## Frontend Notes
-
-- `OCR xtract` runs `/api/ocr-extract`
-- `Summarize` runs `/api/summarize`
-- The same editor is reused across both stages
-- OCR text is editable before summarize
-- 6W summary is editable before save
-- Issuer canon buttons can still update the `單位` field after summarize
-- `Save to Drive` stays disabled until summarize succeeds
+  source images
 
 ## Environment Variables
 
@@ -158,28 +66,22 @@ Required:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `DRIVE_FOLDER_ID`
-- `PADDLE_OCR_URL`
-- `PADDLE_OCR_BEARER_TOKEN`
-- `QWEN_HF_URL`
-- `QWEN_HF_TOKEN`
+- `IMG_2_6W_URL`
 
 Optional:
 
-- `PADDLE_OCR_TIMEOUT_MS`
+- `IMG_2_6W_TIMEOUT_MS`
 - `DRIVE_FALLBACK_FOLDER_ID`
 - `CANONICALS_BIBLE_JSON_PATH`
 - `DRIVE_ACTIVE_SUBFOLDER_PATH`
 
-## Run Locally
+Older OCR-plus-summarize environment variables are no longer part of the active pipeline.
 
-```powershell
-npm install
-npm run dev
-```
+## Repo Identity
 
-## Deploy on Vercel
+Landing page subtitle reference:
 
-- Import this repo as one Next.js project
-- Set the root directory to the repository root
-- Configure the environment variables above
-- Keep Paddle-OCR and Qwen service deployments managed outside this repo
+- `docuKam`
+- `8ball-docuKam`
+
+This repo is the active 6W evolution line, while `main_docuKam` preserves the earlier DocuKam baseline.

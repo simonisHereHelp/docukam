@@ -1,48 +1,30 @@
 # README_UI
 
-This file is a short final-state UI note for DocuKam.
+## Current UI Theme
 
-## Current UI Flow
+The active UI theme is 6W-first.
 
-### Landing page
+Old OCR and summarize stages have been removed from the user flow. The current product centers on one extraction action and one editor surface.
 
-- `Launch Camera`
-  Opens the camera dialog and is the only path that should request media access.
-- `Photo Album`
-  Opens the same document workflow without requesting camera access.
+## Landing Page
 
-### Camera view
+- Title: `Doc-to-6Ws`
+- Repo subtitle appears once below the action buttons
+- Camera access should only happen when `Launch Camera` is used
 
-- Primary action label: `OCR xtract`
-- Result: sends captured images to `/api/ocr-extract`
+## Camera View
 
-### Album / editor view
+- Primary action: `Xtract`
+- This sends images to `/api/img-2-6w`
 
-- Header before summarize: `EDIT OCR TEXT`
-- Header after summarize: `EDIT SUMMARY`
-- Action button in editor header: `Summarize`
-- OCR output and summary output both use the same editor container
+## Album View
 
-### Editor behavior
+- Editor header: `EDIT 6Ws`
+- The editor displays the current 6W text
+- The user may edit all fields directly
+- Issuer Canon can overwrite the `單位` line
 
-- OCR stage:
-  - Editor contains OCR plain text
-  - User edits are used as the input to `/api/summarize`
-- Summary stage:
-  - Editor contains 6W summary text
-  - User edits are used as the input to `Save to Drive`
+## Save Behavior
 
-### Save gating
-
-- `Save to Drive` is disabled until summarize succeeds
-- A saved set includes:
-  - one markdown master file
-  - one OCR JSON sidecar
-  - one or more image files
-
-## Current UI Intent
-
-- Reuse one editor surface across OCR and summary stages
-- Keep the workflow mobile-friendly
-- Keep photo album and camera paths aligned
-- Treat OCR text and 6W summary as user-editable working content
+- `Save to Drive` is available when edited 6W text exists
+- Saved output includes markdown, JSON sidecar, and images

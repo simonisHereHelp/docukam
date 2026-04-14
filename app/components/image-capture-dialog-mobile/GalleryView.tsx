@@ -1,29 +1,28 @@
-import { Loader2, Save, Sparkles, X, RefreshCw } from "lucide-react";
+import { Loader2, Save, X, RefreshCw } from "lucide-react";
 import { Button } from "@/ui/components";
 import type { State, Actions } from "./types";
 
 export function GalleryView({ state, actions }: { state: State; actions: Actions }) {
   return (
-    <div className="absolute inset-0 bg-black/95 z-40 flex flex-col">
-      <div className="flex justify-between p-4 border-b border-white/10">
-        <h3 className="text-white font-bold">{state.images.length} Photos</h3>
+    <div className="absolute inset-0 z-40 flex flex-col bg-black/95">
+      <div className="flex justify-between border-b border-white/10 p-4">
+        <h3 className="font-bold text-white">{state.images.length} Photos</h3>
         <button
           onClick={() => actions.setShowGallery(false)}
-          className="app-button h-8 w-8 rounded-full flex items-center justify-center"
+          className="app-button flex h-8 w-8 items-center justify-center rounded-full"
         >
           <X />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Responsive Image Grid */}
+      <div className="flex-1 space-y-6 overflow-y-auto p-4">
         <div className="grid grid-cols-2 gap-2">
           {state.images.map((img, i) => (
-            <div key={i} className="relative aspect-square bg-white/5 rounded-lg overflow-hidden">
-              <img src={img.url} className="object-contain w-full h-full" />
+            <div key={i} className="relative aspect-square overflow-hidden rounded-lg bg-white/5">
+              <img src={img.url} className="h-full w-full object-contain" />
               <button
                 onClick={() => actions.deleteImage(i)}
-                className="app-button absolute top-1 right-1 h-6 w-6 rounded-full flex items-center justify-center"
+                className="app-button absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full"
               >
                 <X size={12} />
               </button>
@@ -31,53 +30,30 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
           ))}
         </div>
 
-        {/* Summary Editor Section */}
         <div className="space-y-4">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-blue-300">
-                  {state.editorMode === "raw-text" ? "EDIT OCR TEXT" : "EDIT SUMMARY"}
-                </label>
+                <label className="text-xs font-bold text-blue-300">EDIT 6Ws</label>
                 <span className="text-[10px] text-white/55">
-                  {state.editorMode === "raw-text"
-                    ? "OCR raw text. Your edits will be used for summarize."
-                    : "Meta summary output. You can refine it and apply issuer canon."}
+                  6W output. You can refine it directly, and Issuer Canon will overwrite the {"\u55ae\u4f4d"} field.
                 </span>
               </div>
-              <Button
-                onClick={actions.handleEnhance}
-                disabled={state.isSaving || (!state.ocrSummary.trim() && !state.editedSummary.trim())}
-                className="app-button h-8 px-3"
-              >
-                {state.isSaving ? (
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                ) : (
-                  <Sparkles className="mr-2 h-3 w-3" />
-                )}
-                <span className="app-button-label">Summarize</span>
-              </Button>
             </div>
             <textarea
               value={state.editedSummary}
               onChange={(e) => actions.setEditedSummary(e.target.value)}
-              placeholder={
-                state.editorMode === "raw-text"
-                  ? "OCR raw text will appear here. Edit it before summarize."
-                  : "Meta summary output will appear here. You can refine it before saving."
-              }
-              className="w-full min-h-[150px] bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="6W output will appear here. You can refine it before saving."
+              className="min-h-[150px] w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          {/* Canon Selection */}
-          <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-            <div className="flex justify-between items-center mb-2">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-bold text-blue-300">ISSUER CANONS</span>
               <button
                 onClick={actions.refreshCanons}
-                disabled={state.editorMode === "raw-text"}
-                className="app-button h-6 w-6 rounded-full flex items-center justify-center"
+                className="app-button flex h-6 w-6 items-center justify-center rounded-full"
               >
                 <RefreshCw
                   size={14}
@@ -90,10 +66,9 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                 <button
                   key={canon.master}
                   onClick={() => actions.selectCanon(canon)}
-                  disabled={state.editorMode === "raw-text"}
-                  className={`text-[10px] px-3 py-1 rounded-full border transition ${
+                  className={`rounded-full border px-3 py-1 text-[10px] transition ${
                     state.selectedCanon?.master === canon.master
-                      ? "bg-blue-600 border-blue-400"
+                      ? "border-blue-400 bg-blue-600"
                       : "border-white/20 text-white/70"
                   }`}
                 >
@@ -101,26 +76,23 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                 </button>
               ))}
             </div>
-            {state.editorMode === "raw-text" && (
-              <p className="mt-2 text-[10px] text-white/55">
-                Enhance first to turn OCR text into meta summary before applying issuer canon.
-              </p>
-            )}
+            <p className="mt-2 text-[10px] text-white/55">
+              Selecting an issuer canon overwrites the {"\u55ae\u4f4d"} line in the current 6W text.
+            </p>
           </div>
 
-          {/* Target Subfolder Selection */}
-          <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-            <div className="flex justify-between items-center mb-2">
+          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-bold text-blue-300">TARGET SUBFOLDER</span>
               <button
                 onClick={actions.refreshSubfolders}
-                className="app-button h-6 w-6 rounded-full flex items-center justify-center"
+                className="app-button flex h-6 w-6 items-center justify-center rounded-full"
               >
                 <RefreshCw size={14} className={state.subfolderLoading ? "animate-spin" : ""} />
               </button>
             </div>
             {state.subfolderError && (
-              <p className="text-[10px] text-red-300 mb-2">{state.subfolderError}</p>
+              <p className="mb-2 text-[10px] text-red-300">{state.subfolderError}</p>
             )}
             <div className="flex flex-wrap gap-2">
               {state.availableSubfolders.length === 0 && !state.subfolderLoading ? (
@@ -130,9 +102,9 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                   <button
                     key={subfolder.topic}
                     onClick={() => actions.selectSubfolder(subfolder)}
-                    className={`text-[10px] px-3 py-1 rounded-full border transition ${
+                    className={`rounded-full border px-3 py-1 text-[10px] transition ${
                       state.selectedSubfolder?.topic === subfolder.topic
-                        ? "bg-blue-600 border-blue-400"
+                        ? "border-blue-400 bg-blue-600"
                         : "border-white/20 text-white/70"
                     }`}
                   >
@@ -145,24 +117,18 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
         </div>
       </div>
 
-      <div className="p-4 border-t border-white/10">
+      <div className="border-t border-white/10 p-4">
         <Button
           onClick={actions.handleSaveImages}
-          disabled={
-            state.isSaving ||
-            state.editorMode !== "meta-summary" ||
-            !state.editedSummary.trim()
-          }
-          className="app-button w-full h-12"
+          disabled={state.isSaving || !state.editedSummary.trim()}
+          className="app-button h-12 w-full"
         >
           {state.isSaving ? (
-            <Loader2 className="animate-spin mr-2" />
+            <Loader2 className="mr-2 animate-spin" />
           ) : (
             <Save className="mr-2" />
           )}{" "}
-          <span className="app-button-label">
-            {state.editorMode === "meta-summary" ? "Save to Drive" : "Enhance to Enable Save"}
-          </span>
+          <span className="app-button-label">Save to Drive</span>
         </Button>
       </div>
     </div>
