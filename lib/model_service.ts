@@ -27,10 +27,10 @@ const collectUploads = async (req: Request) => {
 };
 
 export async function handleImg2SixW(req: Request) {
-  const serviceEndpoint = process.env.IMG_2_6W_URL;
+  const serviceBaseUrl = process.env.IMG_2_6W_URL;
   const timeoutMs = Number(process.env.IMG_2_6W_TIMEOUT_MS || "380000");
 
-  if (!serviceEndpoint) {
+  if (!serviceBaseUrl) {
     return NextResponse.json({ error: "Missing IMG_2_6W_URL" }, { status: 500 });
   }
 
@@ -48,11 +48,14 @@ export async function handleImg2SixW(req: Request) {
       const outgoingFormData = new FormData();
       outgoingFormData.append("image", upload, upload.name);
 
-      const response = await fetch(serviceEndpoint, {
-        method: "POST",
-        body: outgoingFormData,
-        signal: AbortSignal.timeout(timeoutMs),
-      });
+      const response = await fetch(
+        `${serviceBaseUrl.replace(/\/+$/, "")}/6w`,
+        {
+          method: "POST",
+          body: outgoingFormData,
+          signal: AbortSignal.timeout(timeoutMs),
+        },
+      );
 
       const responseText = await response.text().catch(() => "");
 

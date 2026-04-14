@@ -36,7 +36,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-blue-300">EDIT 6Ws</label>
                 <span className="text-[10px] text-white/55">
-                  6W output. You can refine it directly, and Issuer Canon will overwrite the {"\u55ae\u4f4d"} field.
+                  6W output. You can refine it directly, and Issuer Canon overwrites the {"\u55ae\u4f4d"} field.
                 </span>
               </div>
             </div>
