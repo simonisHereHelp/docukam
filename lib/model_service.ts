@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatSixWFromRecord } from "@/lib/formatSixWText";
 
 interface Img2SixWPayload {
   "\u55ae\u4f4d"?: string;
@@ -10,14 +11,14 @@ interface Img2SixWPayload {
 }
 
 const format6WLines = (payload: Img2SixWPayload) =>
-  [
-    `\u55ae\u4f4d: ${(payload["\u55ae\u4f4d"] || "").trim() || "\u672a\u8b58\u5225"}`,
-    `\u6536\u4ef6\u4eba: ${(payload["\u6536\u4ef6\u4eba"] || "").trim() || "\u672a\u8b58\u5225"}`,
-    `\u65e5\u671f: ${(payload["\u65e5\u671f"] || "").trim() || "\u672a\u8b58\u5225"}`,
-    `\u4e3b\u984c: ${(payload["\u4e3b\u984c"] || "").trim() || "\u672a\u8b58\u5225"}`,
-    `\u5730\u9ede: ${(payload["\u5730\u9ede"] || "").trim() || "\u672a\u8b58\u5225"}`,
-    `abstract_summary: ${(payload.abstract_summary || "").trim() || "\u672a\u8b58\u5225"}`,
-  ].join("\n");
+  formatSixWFromRecord({
+    單位: payload["\u55ae\u4f4d"],
+    收件人: payload["\u6536\u4ef6\u4eba"],
+    日期: payload["\u65e5\u671f"],
+    主題: payload["\u4e3b\u984c"],
+    地點: payload["\u5730\u9ede"],
+    abstract_summary: payload.abstract_summary,
+  });
 
 const collectUploads = async (req: Request) => {
   const incomingFormData = await req.formData();

@@ -4,6 +4,7 @@ import { Buffer } from "buffer";
 import { driveSaveFiles, resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
 import { DRIVE_FALLBACK_FOLDER_ID } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
+import { normalizeSixWText } from "@/lib/formatSixWText";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import { buildNamingSummary, extractIssuerField } from "@/lib/summaryFields";
 
@@ -48,6 +49,7 @@ function buildMarkdown(params: {
   imageFiles: File[];
 }) {
   const { setName, summary, sourceJsonFileName, imageFiles } = params;
+  const formattedSummary = normalizeSixWText(summary);
   const images = imageFiles.map((file, idx) => {
     const pageNumber = idx + 1;
     const extension = resolveExtension(file.name, "jpeg");
@@ -58,7 +60,7 @@ function buildMarkdown(params: {
 
 ## summary
 
-${summary.trim()}
+${formattedSummary}
 
 ---
 
