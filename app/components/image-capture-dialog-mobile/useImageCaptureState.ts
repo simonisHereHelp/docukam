@@ -276,7 +276,17 @@ export const useImageCaptureState = (
   }, [showGallery, availableSubfolders.length, subfolderLoading, refreshSubfolders]);
 
   const handleSaveImages = useCallback(async () => {
-    if (!session || isSaving) return;
+    if (isSaving) return;
+
+    if (!session) {
+      setError("Google login is required before saving to Drive.");
+      return;
+    }
+
+    if (!images.length) {
+      setError("No images are available to save.");
+      return;
+    }
 
     const finalSummary = editedSummary.trim();
     if (!finalSummary) {

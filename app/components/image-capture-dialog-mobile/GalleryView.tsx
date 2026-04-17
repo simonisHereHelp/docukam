@@ -31,6 +31,18 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
         </div>
 
         <div className="space-y-4">
+          {state.error && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
+              {state.error}
+            </div>
+          )}
+
+          {state.saveMessage && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-200 whitespace-pre-line">
+              {state.saveMessage}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col gap-1">
