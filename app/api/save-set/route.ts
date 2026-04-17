@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { Buffer } from "buffer";
 
-import { driveSaveFiles, resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
+import { resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
 import { DRIVE_FALLBACK_FOLDER_ID } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
 import { normalizeSixWText } from "@/lib/formatSixWText";
@@ -16,6 +15,11 @@ interface SelectedCanonMeta {
 interface SelectedSubfolderMeta {
   topic: string;
   folderId?: string;
+}
+
+interface ImagePlanInput {
+  name: string;
+  type?: string;
 }
 
 const buildFolderPath = (slugOrPath: string, base: string) => {
@@ -36,9 +40,9 @@ const resolveExtension = (fileName: string, fallback: string) => {
   return extension && extension.length ? extension : fallback;
 };
 
-const resolveMimeType = (file: File, fallbackExtension: string) => {
-  if (file.type) return file.type;
-  const extension = resolveExtension(file.name, fallbackExtension);
+const resolveMimeType = (type: string | undefined, fileName: string, fallbackExtension: string) => {
+  if (type) return type;
+  const extension = resolveExtension(fileName, fallbackExtension);
   return mimeTypeByExtension[extension] ?? "application/octet-stream";
 };
 
@@ -46,14 +50,13 @@ function buildMarkdown(params: {
   setName: string;
   summary: string;
   sourceJsonFileName: string;
-  imageFiles: File[];
+  imageFileNames: string[];
 }) {
-  const { setName, summary, sourceJsonFileName, imageFiles } = params;
+  const { setName, summary, sourceJsonFileName, imageFileNames } = params;
   const formattedSummary = normalizeSixWText(summary);
-  const images = imageFiles.map((file, idx) => {
+  const images = imageFileNames.map((fileName, idx) => {
     const pageNumber = idx + 1;
-    const extension = resolveExtension(file.name, "jpeg");
-    return `![${setName}-p${pageNumber}](./${setName}-p${pageNumber}.${extension})`;
+    return `![${setName}-p${pageNumber}](./${fileName})`;
   });
 
   return `# ${setName}
@@ -94,41 +97,32 @@ export async function POST(request: Request) {
   }
 
   try {
-    const formData = await request.formData();
-    const summary = (formData.get("summary") as string | null)?.trim() ?? "";
-    const sourceText = (formData.get("sourceText") as string | null)?.trim() ?? "";
-    const selectedCanonRaw = formData.get("selectedCanon");
-    const selectedSubfolderRaw = formData.get("selectedSubfolder");
-    let selectedCanon: SelectedCanonMeta | null = null;
-    let selectedSubfolder: SelectedSubfolderMeta | null = null;
+    const {
+      summary,
+      sourceText,
+      selectedCanon,
+      selectedSubfolder,
+      images,
+    } = (await request.json()) as {
+      summary?: string;
+      sourceText?: string;
+      selectedCanon?: SelectedCanonMeta | null;
+      selectedSubfolder?: SelectedSubfolderMeta | null;
+      images?: ImagePlanInput[];
+    };
 
-    if (typeof selectedCanonRaw === "string") {
-      try {
-        selectedCanon = (JSON.parse(selectedCanonRaw) as SelectedCanonMeta) ?? null;
-      } catch (err) {
-        console.warn("Unable to parse selectedCanon from request:", err);
-      }
-    }
+    const trimmedSummary = summary?.trim() ?? "";
+    const trimmedSourceText = sourceText?.trim() ?? "";
+    const imagePlans = Array.isArray(images) ? images : [];
 
-    if (typeof selectedSubfolderRaw === "string") {
-      try {
-        selectedSubfolder =
-          (JSON.parse(selectedSubfolderRaw) as SelectedSubfolderMeta) ?? null;
-      } catch (err) {
-        console.warn("Unable to parse selectedSubfolder from request:", err);
-      }
-    }
-
-    const files = formData.getAll("files").filter((file): file is File => file instanceof File);
-
-    if (!summary || !sourceText || !files.length) {
+    if (!trimmedSummary || !trimmedSourceText || !imagePlans.length) {
       return NextResponse.json(
-        { error: "Summary, source text, and files are required." },
+        { error: "Summary, source text, and image metadata are required." },
         { status: 400 },
       );
     }
 
-    const namingSummary = buildNamingSummary(summary, selectedCanon?.master ?? null);
+    const namingSummary = buildNamingSummary(trimmedSummary, selectedCanon?.master ?? null);
     const normalizedSetName = normalizeFilename(
       await deriveSetNameFromSummary(namingSummary),
     );
@@ -148,7 +142,7 @@ export async function POST(request: Request) {
       );
       topic = selectedSubfolder.topic;
     } else {
-      const resolved = await resolveDriveFolder(summary);
+      const resolved = await resolveDriveFolder(trimmedSummary);
       targetFolderId = resolved.folderId;
       topic = resolved.topic;
     }
@@ -158,58 +152,50 @@ export async function POST(request: Request) {
       preferredBaseName: normalizedSetName,
     });
 
-    const imageFiles = files;
-    const sourceJsonFileName = `${uniqueSetName}.json`;
-    const markdown = buildMarkdown({
-      setName: uniqueSetName,
-      summary,
-      sourceJsonFileName,
-      imageFiles,
+    const imageUploads = imagePlans.map((image, idx) => {
+      const extension = resolveExtension(image.name, "jpeg");
+      const fileName = normalizeFilename(`${uniqueSetName}-p${idx + 1}.${extension}`);
+      return {
+        sourceIndex: idx,
+        fileName,
+        mimeType: resolveMimeType(image.type, image.name, extension),
+      };
     });
 
-    const sourceJson = JSON.stringify(
+    const sourceJsonFileName = `${uniqueSetName}.json`;
+    const markdownFileName = `${uniqueSetName}.md`;
+
+    const markdownText = buildMarkdown({
+      setName: uniqueSetName,
+      summary: trimmedSummary,
+      sourceJsonFileName,
+      imageFileNames: imageUploads.map((image) => image.fileName),
+    });
+
+    const jsonText = JSON.stringify(
       {
-        sourceText,
+        sourceText: trimmedSourceText,
       },
       null,
       2,
     );
 
-    const summaryFile = new File([markdown], "summary.md", { type: "text/markdown" });
-    const sourceJsonFile = new File([sourceJson], "source.json", { type: "application/json" });
-    const uploadFiles = [...imageFiles, sourceJsonFile, summaryFile];
-
-    await driveSaveFiles({
-      folderId: targetFolderId,
-      files: uploadFiles,
-      fileToUpload: async (file) => {
-        const baseName = normalizeFilename(
-          uniqueSetName.replace(/[\\/:*?"<>|]/g, "_"),
-        );
-        const extension = resolveExtension(file.name, "dat");
-
-        const fileName = normalizeFilename(
-          file === summaryFile || file.name === "summary.md"
-            ? `${baseName}.md`
-            : file === sourceJsonFile || file.name === "source.json"
-              ? `${baseName}.json`
-            : `${baseName}-p${imageFiles.indexOf(file) + 1}.${extension ?? "dat"}`,
-        );
-
-        return {
-          name: fileName,
-          buffer: Buffer.from(await file.arrayBuffer()),
-          mimeType: resolveMimeType(file, extension),
-        };
-      },
-    });
-
     return NextResponse.json(
-      { setName: uniqueSetName, targetFolderId, topic },
+      {
+        setName: uniqueSetName,
+        targetFolderId,
+        topic,
+        markdownFileName,
+        markdownText,
+        jsonFileName: sourceJsonFileName,
+        jsonText,
+        imageUploads,
+      },
       { status: 200 },
     );
   } catch (err: any) {
-    console.error("save-set failed:", err);
+    console.error("save-set plan failed:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

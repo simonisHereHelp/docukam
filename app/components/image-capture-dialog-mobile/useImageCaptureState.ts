@@ -301,6 +301,7 @@ export const useImageCaptureState = (
       images,
       sourceSummary,
       finalSummary,
+      accessToken: ((session as any)?.accessToken as string | undefined) ?? "",
       selectedCanon,
       selectedSubfolder,
       setIsSaving,

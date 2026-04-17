@@ -1,4 +1,5 @@
 import { playSuccessChime } from "../app/components/image-capture-dialog-mobile/soundEffects";
+import { uploadDriveFileResumable } from "@/lib/driveResumableUpload";
 
 export interface Image {
   url: string;
@@ -15,6 +16,21 @@ export interface SelectedSubfolderMeta {
   folderId?: string;
 }
 
+interface SavePlanResponse {
+  setName?: string;
+  targetFolderId?: string | null;
+  topic?: string | null;
+  markdownFileName?: string;
+  markdownText?: string;
+  jsonFileName?: string;
+  jsonText?: string;
+  imageUploads?: Array<{
+    sourceIndex: number;
+    fileName: string;
+    mimeType: string;
+  }>;
+}
+
 /**
  * Saves the current images and edited summary via /api/save-set.
  * The server derives the final set name and persists the issuer canon update.
@@ -23,6 +39,7 @@ export const handleSave = async ({
   images,
   sourceSummary,
   finalSummary,
+  accessToken,
   selectedCanon,
   selectedSubfolder,
   setIsSaving,
@@ -32,6 +49,7 @@ export const handleSave = async ({
   images: Image[];
   sourceSummary: string;
   finalSummary: string;
+  accessToken: string;
   selectedCanon?: SelectedCanonMeta | null;
   selectedSubfolder?: SelectedSubfolderMeta | null;
   setIsSaving: (isSaving: boolean) => void;
@@ -43,6 +61,10 @@ export const handleSave = async ({
   }) => void;
 }): Promise<boolean> => {
   if (!images.length) return false;
+  if (!accessToken) {
+    onError?.("Google Drive access token is missing. Please log in again.");
+    return false;
+  }
 
   const trimmedFinalSummary = finalSummary.trim();
   if (!trimmedFinalSummary) return false;
@@ -50,25 +72,21 @@ export const handleSave = async ({
   setIsSaving(true);
 
   try {
-    const formData = new FormData();
-    formData.append("summary", trimmedFinalSummary);
-    formData.append("sourceText", sourceSummary.trim());
-
-    if (selectedCanon) {
-      formData.append("selectedCanon", JSON.stringify(selectedCanon));
-    }
-
-    if (selectedSubfolder) {
-      formData.append("selectedSubfolder", JSON.stringify(selectedSubfolder));
-    }
-
-    images.forEach((image) => {
-      formData.append("files", image.file);
-    });
-
     const response = await fetch("/api/save-set", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        summary: trimmedFinalSummary,
+        sourceText: sourceSummary.trim(),
+        selectedCanon,
+        selectedSubfolder,
+        images: images.map((image) => ({
+          name: image.file.name,
+          type: image.file.type,
+        })),
+      }),
     });
 
     if (!response.ok) {
@@ -76,9 +94,50 @@ export const handleSave = async ({
       throw new Error(message || "Failed to save files to Google Drive.");
     }
 
-    const json = (await response.json().catch(() => null)) as
-      | { setName?: string; targetFolderId?: string | null; topic?: string | null }
-      | null;
+    const plan = (await response.json().catch(() => null)) as SavePlanResponse | null;
+    const targetFolderId = plan?.targetFolderId ?? null;
+
+    if (
+      !targetFolderId ||
+      !plan?.markdownFileName ||
+      !plan?.markdownText ||
+      !plan?.jsonFileName ||
+      !plan?.jsonText ||
+      !Array.isArray(plan.imageUploads)
+    ) {
+      throw new Error("Save plan is incomplete.");
+    }
+
+    for (const imageUpload of plan.imageUploads) {
+      const sourceImage = images[imageUpload.sourceIndex];
+      if (!sourceImage) {
+        throw new Error(`Missing source image for upload index ${imageUpload.sourceIndex}.`);
+      }
+
+      await uploadDriveFileResumable({
+        accessToken,
+        folderId: targetFolderId,
+        fileName: imageUpload.fileName,
+        mimeType: imageUpload.mimeType,
+        file: sourceImage.file,
+      });
+    }
+
+    await uploadDriveFileResumable({
+      accessToken,
+      folderId: targetFolderId,
+      fileName: plan.jsonFileName,
+      mimeType: "application/json",
+      file: new Blob([plan.jsonText], { type: "application/json" }),
+    });
+
+    await uploadDriveFileResumable({
+      accessToken,
+      folderId: targetFolderId,
+      fileName: plan.markdownFileName,
+      mimeType: "text/markdown",
+      file: new Blob([plan.markdownText], { type: "text/markdown" }),
+    });
 
     try {
       const updateResponse = await fetch("/api/update-issuerCanon", {
@@ -102,9 +161,9 @@ export const handleSave = async ({
     }
 
     onSuccess?.({
-      setName: json?.setName ?? "",
-      targetFolderId: json?.targetFolderId ?? null,
-      topic: json?.topic ?? null,
+      setName: plan?.setName ?? "",
+      targetFolderId,
+      topic: plan?.topic ?? null,
     });
 
     playSuccessChime();
