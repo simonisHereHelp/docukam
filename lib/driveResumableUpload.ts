@@ -16,6 +16,13 @@ export async function uploadDriveFileResumable({
   mimeType,
   file,
 }: ResumableUploadParams) {
+  console.info("[drive-upload] start session", {
+    fileName,
+    mimeType,
+    folderId,
+    size: file.size,
+  });
+
   const startResponse = await fetch(DRIVE_RESUMABLE_CREATE_URL, {
     method: "POST",
     headers: {
@@ -33,13 +40,20 @@ export async function uploadDriveFileResumable({
 
   if (!startResponse.ok) {
     const message = await startResponse.text().catch(() => "");
-    throw new Error(message || "Failed to start Drive resumable upload.");
+    throw new Error(
+      `[drive-upload] Failed to start resumable upload for ${fileName}: ${startResponse.status} ${message || "Unknown error"}`,
+    );
   }
 
   const sessionUrl = startResponse.headers.get("Location");
   if (!sessionUrl) {
     throw new Error("Drive resumable upload session URL missing.");
   }
+
+  console.info("[drive-upload] session created", {
+    fileName,
+    hasSessionUrl: true,
+  });
 
   const uploadResponse = await fetch(sessionUrl, {
     method: "PUT",
@@ -51,9 +65,12 @@ export async function uploadDriveFileResumable({
 
   if (!uploadResponse.ok) {
     const message = await uploadResponse.text().catch(() => "");
-    throw new Error(message || "Failed to upload file to Drive.");
+    throw new Error(
+      `[drive-upload] Failed to upload ${fileName}: ${uploadResponse.status} ${message || "Unknown error"}`,
+    );
   }
+
+  console.info("[drive-upload] upload complete", { fileName });
 
   return uploadResponse.json().catch(() => null);
 }
-

@@ -72,6 +72,12 @@ export const handleSave = async ({
   setIsSaving(true);
 
   try {
+    console.info("[save] requesting save plan", {
+      imageCount: images.length,
+      hasSelectedCanon: Boolean(selectedCanon),
+      hasSelectedSubfolder: Boolean(selectedSubfolder),
+    });
+
     const response = await fetch("/api/save-set", {
       method: "POST",
       headers: {
@@ -96,6 +102,12 @@ export const handleSave = async ({
 
     const plan = (await response.json().catch(() => null)) as SavePlanResponse | null;
     const targetFolderId = plan?.targetFolderId ?? null;
+
+    console.info("[save] save plan ready", {
+      setName: plan?.setName ?? "",
+      targetFolderId,
+      imageUploads: plan?.imageUploads?.length ?? 0,
+    });
 
     if (
       !targetFolderId ||
@@ -122,6 +134,11 @@ export const handleSave = async ({
         file: sourceImage.file,
       });
     }
+
+    console.info("[save] uploading metadata files", {
+      jsonFileName: plan.jsonFileName,
+      markdownFileName: plan.markdownFileName,
+    });
 
     await uploadDriveFileResumable({
       accessToken,
@@ -170,7 +187,11 @@ export const handleSave = async ({
     return true;
   } catch (error) {
     console.error("Failed to save images:", error);
-    onError?.("Unable to save captured images. Please try again.");
+    onError?.(
+      error instanceof Error
+        ? error.message
+        : "Unable to save captured images. Please try again.",
+    );
     return false;
   } finally {
     setIsSaving(false);
