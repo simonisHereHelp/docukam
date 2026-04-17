@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
+import { ensureFolderPath, resolveUniqueDriveSetName } from "@/lib/driveSaveFiles";
 import { DRIVE_FALLBACK_FOLDER_ID } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
 import { normalizeSixWText } from "@/lib/formatSixWText";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import { buildNamingSummary, extractIssuerField } from "@/lib/summaryFields";
+import { auth } from "@/auth";
 
 interface SelectedCanonMeta {
   master: string;
@@ -147,6 +148,14 @@ export async function POST(request: Request) {
       topic = resolved.topic;
     }
 
+    const session = await auth();
+    const accessToken = (session as any)?.accessToken as string | undefined;
+    if (!accessToken) {
+      return NextResponse.json({ error: "Missing Google Drive access token on session." }, { status: 401 });
+    }
+
+    const resolvedTargetFolderId = await ensureFolderPath(targetFolderId, accessToken);
+
     const uniqueSetName = await resolveUniqueDriveSetName({
       folderId: targetFolderId,
       preferredBaseName: normalizedSetName,
@@ -183,7 +192,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         setName: uniqueSetName,
-        targetFolderId,
+        targetFolderId: resolvedTargetFolderId,
         topic,
         markdownFileName,
         markdownText,
@@ -198,4 +207,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-

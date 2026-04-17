@@ -127,7 +127,7 @@ export async function resolveUniqueDriveSetName(params: {
   throw new Error("Unable to resolve a unique Drive file name.");
 }
 
-async function ensureFolderPath(folderPath: string, accessToken: string): Promise<string> {
+export async function ensureFolderPath(folderPath: string, accessToken: string): Promise<string> {
   if (!folderPath) throw new Error("Missing target Drive folder");
 
   const parts = folderPath.split("/").filter(Boolean);
