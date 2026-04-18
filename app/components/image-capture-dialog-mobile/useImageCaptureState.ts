@@ -265,7 +265,20 @@ export const useImageCaptureState = (
         | { subfolders?: SubfolderOption[] }
         | null;
 
-      setAvailableSubfolders(json?.subfolders ?? []);
+      const subfolders = json?.subfolders ?? [];
+      setAvailableSubfolders(subfolders);
+
+      setSelectedSubfolder((current) => {
+        if (current && subfolders.some((subfolder) => subfolder.topic === current.topic)) {
+          return current;
+        }
+
+        return (
+          subfolders.find((subfolder) => subfolder.topic === "Z-others") ??
+          subfolders[0] ??
+          null
+        );
+      });
     } catch (err) {
       setSubfolderError(err instanceof Error ? err.message : "Unable to load subfolder options.");
     } finally {
@@ -368,6 +381,7 @@ export const useImageCaptureState = (
     images,
     sourceSummary,
     editedSummary,
+    editedOcrText,
     selectedCanon,
     selectedSubfolder,
     onOpenChange,
