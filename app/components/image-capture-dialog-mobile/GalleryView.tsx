@@ -68,6 +68,16 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
                   OCR text output. You can refine it directly before saving.
                 </span>
               </div>
+              <Button
+                onClick={actions.handleImgToOcrText}
+                disabled={state.isProcessingOcrText || state.images.length === 0}
+                className="app-button h-10 px-4"
+              >
+                {state.isProcessingOcrText ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                <span className="app-button-label">Run OCR</span>
+              </Button>
             </div>
             <textarea
               value={state.editedOcrText}

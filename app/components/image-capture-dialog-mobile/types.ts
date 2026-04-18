@@ -19,6 +19,7 @@ export interface State {
   facingMode: FacingMode;
   isSaving: boolean;
   isProcessingCapture: boolean;
+  isProcessingOcrText: boolean;
   isModelReady: boolean;
   isCheckingModelReady: boolean;
   showGallery: boolean;
@@ -46,6 +47,7 @@ export interface Actions {
   handleCameraSwitch: () => Promise<void>;
   handleAlbumSelect: (files: FileList | null) => Promise<void>;
   handleImg2SixW: () => Promise<void>;
+  handleImgToOcrText: () => Promise<void>;
   handleSaveImages: () => Promise<void>;
   handleClose: () => void;
   setCaptureSource: (source: "camera" | "photos") => void;

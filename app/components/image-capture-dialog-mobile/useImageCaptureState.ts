@@ -33,6 +33,7 @@ export const useImageCaptureState = (
   const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessingCapture, setIsProcessingCapture] = useState(false);
+  const [isProcessingOcrText, setIsProcessingOcrText] = useState(false);
   const [isModelReady, setModelReady] = useState(false);
   const [isCheckingModelReady, setIsCheckingModelReady] = useState(true);
   const [showGallery, setShowGallery] = useState(false);
@@ -202,26 +203,37 @@ export const useImageCaptureState = (
     setSaveMessage("");
     setError("");
 
-    const [didSixW, didOcrText] = await Promise.all([
-      runImgToSixWExtract({
-        images,
-        setIsSaving,
-        setSourceSummary,
-        setEditedSummary,
-        setError,
-      }),
-      runImgToOcrTextExtract({
+    const didSixW = await runImgToSixWExtract({
+      images,
+      setIsSaving,
+      setSourceSummary,
+      setEditedSummary,
+      setError,
+    });
+
+    if (didSixW && images.length > 0) {
+      setShowGallery(true);
+    }
+  }, [images]);
+
+  const handleImgToOcrText = useCallback(async () => {
+    if (!images.length || isProcessingOcrText) return;
+
+    setSaveMessage("");
+    setError("");
+    setIsProcessingOcrText(true);
+
+    try {
+      await runImgToOcrTextExtract({
         images,
         setSourceOcrText,
         setEditedOcrText,
         onError: setError,
-      }),
-    ]);
-
-    if ((didSixW || didOcrText) && images.length > 0) {
-      setShowGallery(true);
+      });
+    } finally {
+      setIsProcessingOcrText(false);
     }
-  }, [images]);
+  }, [images, isProcessingOcrText]);
 
   const refreshCanons = useCallback(async () => {
     if (issuerCanonsLoading) return;
@@ -367,6 +379,7 @@ export const useImageCaptureState = (
     facingMode,
     isSaving,
     isProcessingCapture,
+    isProcessingOcrText,
     isModelReady,
     isCheckingModelReady,
     showGallery,
@@ -394,6 +407,7 @@ export const useImageCaptureState = (
     handleAlbumSelect,
     handleCameraSwitch,
     handleImg2SixW,
+    handleImgToOcrText,
     handleSaveImages,
     handleClose,
     setCaptureSource,
