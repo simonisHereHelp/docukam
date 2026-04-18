@@ -26,6 +26,8 @@ export interface State {
   captureSource: "camera" | "photos";
   sourceSummary: string;
   editedSummary: string;
+  sourceOcrText: string;
+  editedOcrText: string;
   error: string;
   saveMessage: string;
   availableSubfolders: SubfolderOption[];
@@ -49,6 +51,8 @@ export interface Actions {
   setCaptureSource: (source: "camera" | "photos") => void;
   setEditedSummary: (summary: string) => void;
   setSourceSummary: (summary: string) => void;
+  setEditedOcrText: (text: string) => void;
+  setSourceOcrText: (text: string) => void;
   setModelReady: (ready: boolean) => void;
   setShowGallery: (show: boolean) => void;
   setCameraError: (error: boolean) => void;

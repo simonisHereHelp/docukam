@@ -100,25 +100,25 @@ export async function POST(request: Request) {
   try {
     const {
       summary,
-      sourceText,
+      ocrText,
       selectedCanon,
       selectedSubfolder,
       images,
     } = (await request.json()) as {
       summary?: string;
-      sourceText?: string;
+      ocrText?: string;
       selectedCanon?: SelectedCanonMeta | null;
       selectedSubfolder?: SelectedSubfolderMeta | null;
       images?: ImagePlanInput[];
     };
 
     const trimmedSummary = summary?.trim() ?? "";
-    const trimmedSourceText = sourceText?.trim() ?? "";
+    const trimmedOcrText = ocrText?.trim() ?? "";
     const imagePlans = Array.isArray(images) ? images : [];
 
-    if (!trimmedSummary || !trimmedSourceText || !imagePlans.length) {
+    if (!trimmedSummary || !trimmedOcrText || !imagePlans.length) {
       return NextResponse.json(
-        { error: "Summary, source text, and image metadata are required." },
+        { error: "Summary, OCR text, and image metadata are required." },
         { status: 400 },
       );
     }
@@ -183,7 +183,8 @@ export async function POST(request: Request) {
 
     const jsonText = JSON.stringify(
       {
-        sourceText: trimmedSourceText,
+        sixWText: trimmedSummary,
+        ocrText: trimmedOcrText,
       },
       null,
       2,

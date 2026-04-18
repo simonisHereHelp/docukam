@@ -60,6 +60,23 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
             />
           </div>
 
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-blue-300">EDIT OCR TEXT</label>
+                <span className="text-[10px] text-white/55">
+                  OCR text output. You can refine it directly before saving.
+                </span>
+              </div>
+            </div>
+            <textarea
+              value={state.editedOcrText}
+              onChange={(e) => actions.setEditedOcrText(e.target.value)}
+              placeholder="OCR text will appear here. You can refine it before saving."
+              className="min-h-[180px] w-full rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
           <div className="rounded-lg border border-white/10 bg-white/5 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-xs font-bold text-blue-300">ISSUER CANONS</span>
@@ -132,7 +149,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
       <div className="border-t border-white/10 p-4">
         <Button
           onClick={actions.handleSaveImages}
-          disabled={state.isSaving || !state.editedSummary.trim()}
+          disabled={state.isSaving || !state.editedSummary.trim() || !state.editedOcrText.trim()}
           className="app-button h-12 w-full"
         >
           {state.isSaving ? (

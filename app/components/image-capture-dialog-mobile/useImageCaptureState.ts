@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { handleSave } from "@/lib/handleSave";
 import { runImgToSixWExtract } from "@/lib/imgToSixW_client";
+import { runImgToOcrTextExtract } from "@/lib/imgToOcrText_client";
 import { normalizeFilename } from "@/lib/normalizeFilename";
 import {
   CaptureError,
@@ -40,6 +41,8 @@ export const useImageCaptureState = (
 
   const [sourceSummary, setSourceSummary] = useState("");
   const [editedSummary, setEditedSummary] = useState("");
+  const [sourceOcrText, setSourceOcrText] = useState("");
+  const [editedOcrText, setEditedOcrText] = useState("");
 
   const [error, setError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
@@ -122,6 +125,8 @@ export const useImageCaptureState = (
   const resetSummaryState = useCallback(() => {
     setSourceSummary("");
     setEditedSummary("");
+    setSourceOcrText("");
+    setEditedOcrText("");
     setSaveMessage("");
     setError("");
   }, []);
@@ -197,15 +202,23 @@ export const useImageCaptureState = (
     setSaveMessage("");
     setError("");
 
-    const didExtract = await runImgToSixWExtract({
-      images,
-      setIsSaving,
-      setSourceSummary,
-      setEditedSummary,
-      setError,
-    });
+    const [didSixW, didOcrText] = await Promise.all([
+      runImgToSixWExtract({
+        images,
+        setIsSaving,
+        setSourceSummary,
+        setEditedSummary,
+        setError,
+      }),
+      runImgToOcrTextExtract({
+        images,
+        setSourceOcrText,
+        setEditedOcrText,
+        onError: setError,
+      }),
+    ]);
 
-    if (didExtract && images.length > 0) {
+    if ((didSixW || didOcrText) && images.length > 0) {
       setShowGallery(true);
     }
   }, [images]);
@@ -294,6 +307,12 @@ export const useImageCaptureState = (
       return;
     }
 
+    const finalOcrText = editedOcrText.trim();
+    if (!finalOcrText) {
+      setError("Please ensure the OCR text is not empty before saving.");
+      return;
+    }
+
     setSaveMessage("");
     setError("");
 
@@ -301,6 +320,7 @@ export const useImageCaptureState = (
       images,
       sourceSummary,
       finalSummary,
+      ocrText: finalOcrText,
       accessToken: ((session as any)?.accessToken as string | undefined) ?? "",
       selectedCanon,
       selectedSubfolder,
@@ -321,6 +341,8 @@ export const useImageCaptureState = (
         setImages([]);
         setSourceSummary("");
         setEditedSummary("");
+        setSourceOcrText("");
+        setEditedOcrText("");
         setSelectedCanon(null);
         setSelectedSubfolder(null);
         playSuccessChime();
@@ -352,6 +374,8 @@ export const useImageCaptureState = (
     captureSource,
     sourceSummary,
     editedSummary,
+    sourceOcrText,
+    editedOcrText,
     error,
     saveMessage,
     availableSubfolders,
@@ -375,6 +399,8 @@ export const useImageCaptureState = (
     setCaptureSource,
     setEditedSummary,
     setSourceSummary,
+    setEditedOcrText,
+    setSourceOcrText,
     setModelReady,
     setShowGallery,
     setCameraError,

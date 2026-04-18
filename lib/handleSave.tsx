@@ -39,6 +39,7 @@ export const handleSave = async ({
   images,
   sourceSummary,
   finalSummary,
+  ocrText,
   accessToken,
   selectedCanon,
   selectedSubfolder,
@@ -49,6 +50,7 @@ export const handleSave = async ({
   images: Image[];
   sourceSummary: string;
   finalSummary: string;
+  ocrText: string;
   accessToken: string;
   selectedCanon?: SelectedCanonMeta | null;
   selectedSubfolder?: SelectedSubfolderMeta | null;
@@ -85,7 +87,7 @@ export const handleSave = async ({
       },
       body: JSON.stringify({
         summary: trimmedFinalSummary,
-        sourceText: sourceSummary.trim(),
+        ocrText: ocrText.trim(),
         selectedCanon,
         selectedSubfolder,
         images: images.map((image) => ({

@@ -10,6 +10,12 @@ interface Img2SixWPayload {
   abstract_summary?: string;
 }
 
+interface ImgToOcrTextPayload {
+  plainText?: string;
+  text?: string;
+  rawText?: string;
+}
+
 const format6WLines = (payload: Img2SixWPayload) =>
   formatSixWFromRecord({
     單位: payload["\u55ae\u4f4d"],
@@ -160,6 +166,83 @@ export async function handleImg2SixW(req: Request) {
     );
   } catch (err: any) {
     console.error("img-2-6w failed:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function handleImgToOcrText(req: Request) {
+  const serviceBaseUrl = process.env.IMG_2_6W_URL;
+  const timeoutMs = Number(process.env.IMG_2_6W_TIMEOUT_MS || "380000");
+
+  if (!serviceBaseUrl) {
+    return NextResponse.json({ error: "Missing IMG_2_6W_URL" }, { status: 500 });
+  }
+
+  try {
+    const uploads = await collectUploads(req);
+
+    if (uploads.length === 0) {
+      return NextResponse.json({ error: "At least one file is required." }, { status: 400 });
+    }
+
+    const attempts = [
+      { path: "/ocr-text", fieldName: "images" },
+      { path: "/ocr-extract", fieldName: "images" },
+      { path: "/extract", fieldName: "files" },
+    ];
+
+    let lastError = "Unable to run OCR text extraction.";
+
+    for (const attempt of attempts) {
+      const outgoingFormData = new FormData();
+      for (const upload of uploads) {
+        outgoingFormData.append(attempt.fieldName, upload, upload.name);
+      }
+
+      const response = await fetch(buildServiceUrl(serviceBaseUrl, attempt.path), {
+        method: "POST",
+        body: outgoingFormData,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      const responseText = await response.text().catch(() => "");
+
+      if (!response.ok) {
+        lastError = responseText || `img-2-ocrText failed with status ${response.status}`;
+        continue;
+      }
+
+      let payload: ImgToOcrTextPayload | null = null;
+      try {
+        payload = (JSON.parse(responseText) as ImgToOcrTextPayload | null) ?? null;
+      } catch {
+        payload = { plainText: responseText };
+      }
+
+      const plainText =
+        payload?.plainText?.trim() ||
+        payload?.text?.trim() ||
+        payload?.rawText?.trim() ||
+        "";
+
+      if (!plainText) {
+        lastError = "OCR text route returned no text.";
+        continue;
+      }
+
+      return NextResponse.json(
+        {
+          backend: "img-2-ocrText",
+          plainText,
+          raw: payload,
+        },
+        { status: 200 },
+      );
+    }
+
+    throw new Error(lastError);
+  } catch (err: any) {
+    console.error("img-2-ocrText failed:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
