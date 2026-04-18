@@ -36,6 +36,18 @@ const collectUploads = async (req: Request) => {
 const buildServiceUrl = (baseUrl: string, pathName: string) =>
   `${baseUrl.replace(/\/+$/, "")}/${pathName.replace(/^\/+/, "")}`;
 
+const buildServiceHeaders = () => {
+  const token = process.env.IMG_2_6W_BEARER_TOKEN?.trim();
+
+  if (!token) {
+    return undefined;
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
+
 export async function handleImg2SixWReady() {
   const serviceBaseUrl = process.env.IMG_2_6W_URL;
 
@@ -173,6 +185,7 @@ export async function handleImg2SixW(req: Request) {
 export async function handleImgToOcrText(req: Request) {
   const serviceBaseUrl = process.env.IMG_2_6W_URL;
   const timeoutMs = Number(process.env.IMG_2_6W_TIMEOUT_MS || "380000");
+  const headers = buildServiceHeaders();
 
   if (!serviceBaseUrl) {
     return NextResponse.json({ error: "Missing IMG_2_6W_URL" }, { status: 500 });
@@ -202,6 +215,7 @@ export async function handleImgToOcrText(req: Request) {
       const response = await fetch(buildServiceUrl(serviceBaseUrl, attempt.path), {
         method: "POST",
         body: outgoingFormData,
+        headers,
         signal: AbortSignal.timeout(timeoutMs),
       });
 

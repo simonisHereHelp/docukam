@@ -37,56 +37,40 @@ export const runImgToOcrTextExtract = async ({
 }): Promise<boolean> => {
   if (images.length === 0) return false;
 
-  const serviceBaseUrl = process.env.NEXT_PUBLIC_IMG_2_6W_URL;
-  if (!serviceBaseUrl) {
-    onError?.("Missing NEXT_PUBLIC_IMG_2_6W_URL.");
-    return false;
-  }
-
-  const attempts = [
-    { path: "/ocr-text", fieldName: "images" },
-    { path: "/ocr-extract", fieldName: "images" },
-    { path: "/extract", fieldName: "files" },
-  ];
-
   let lastError = "Unable to run OCR text extraction.";
 
-  for (const attempt of attempts) {
-    try {
-      const formData = new FormData();
-      images.forEach((image) => {
-        formData.append(attempt.fieldName, image.file, image.file.name);
-      });
+  try {
+    const formData = new FormData();
+    images.forEach((image) => {
+      formData.append("files", image.file, image.file.name);
+    });
 
-      const response = await fetch(
-        `${serviceBaseUrl.replace(/\/+$/, "")}${attempt.path}`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+    const response = await fetch("/api/img-2-ocrText", {
+      method: "POST",
+      body: formData,
+    });
 
-      if (!response.ok) {
-        const message = await response.text().catch(() => "");
-        lastError = message || `OCR text route failed: ${response.status}`;
-        continue;
-      }
-
-      const extractedText = await responseToText(response);
-      if (!extractedText) {
-        lastError = "OCR text route returned no text.";
-        continue;
-      }
-
-      setSourceOcrText(extractedText);
-      setEditedOcrText(extractedText);
-      return true;
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : "Unable to run OCR text extraction.";
+    if (!response.ok) {
+      const message = await response.text().catch(() => "");
+      lastError = message || `OCR text route failed: ${response.status}`;
+      onError?.(lastError);
+      return false;
     }
+
+    const extractedText = await responseToText(response);
+    if (!extractedText) {
+      lastError = "OCR text route returned no text.";
+      onError?.(lastError);
+      return false;
+    }
+
+    setSourceOcrText(extractedText);
+    setEditedOcrText(extractedText);
+    return true;
+  } catch (error) {
+    lastError = error instanceof Error ? error.message : "Unable to run OCR text extraction.";
   }
 
   onError?.(lastError);
   return false;
 };
-
