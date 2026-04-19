@@ -185,6 +185,10 @@ export async function POST(request: Request) {
       {
         sixWText: trimmedSummary,
         ocrText: trimmedOcrText,
+        sourceContent: {
+          sixWText: trimmedSummary,
+          ocrText: trimmedOcrText,
+        },
       },
       null,
       2,

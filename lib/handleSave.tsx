@@ -78,6 +78,8 @@ export const handleSave = async ({
       imageCount: images.length,
       hasSelectedCanon: Boolean(selectedCanon),
       hasSelectedSubfolder: Boolean(selectedSubfolder),
+      sixWLength: trimmedFinalSummary.length,
+      ocrTextLength: ocrText.trim().length,
     });
 
     const response = await fetch("/api/save-set", {
