@@ -34,6 +34,7 @@ function Content() {
   const isMobile = useIsMobile();
 
   const { data: session } = useSession();
+  const userId = session?.userId || session?.user?.email || "Not connected";
 
   const handleOpen = (source: "camera" | "photos") => setDialogSource(source);
   const handleClose = () => setDialogSource(null);
@@ -72,7 +73,7 @@ function Content() {
             Doc-to-6Ws
           </h1>
           <p className="mx-auto mt-2 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
-            Google Login: {session ? "Connected" : "Not connected"}
+            User ID: {userId}
           </p>
           {!session ? (
             <Button onClick={() => signIn("google")} className="app-button mt-4">
