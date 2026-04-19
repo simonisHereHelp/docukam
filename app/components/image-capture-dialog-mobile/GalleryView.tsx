@@ -159,7 +159,7 @@ export function GalleryView({ state, actions }: { state: State; actions: Actions
       <div className="border-t border-white/10 p-4">
         <Button
           onClick={actions.handleSaveImages}
-          disabled={state.isSaving || !state.editedSummary.trim() || !state.editedOcrText.trim()}
+          disabled={state.isSaving}
           className="app-button h-12 w-full"
         >
           {state.isSaving ? (
