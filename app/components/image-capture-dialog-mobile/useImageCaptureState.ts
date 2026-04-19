@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import type { WebCameraHandler, FacingMode } from "@/lib/react-web-camera";
-import { useSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { handleSave } from "@/lib/handleSave";
 import { runImgToSixWExtract } from "@/lib/imgToSixW_client";
@@ -316,8 +316,15 @@ export const useImageCaptureState = (
   const handleSaveImages = useCallback(async () => {
     if (isSaving) return;
 
-    if (!session) {
+    const freshSession = await getSession();
+
+    if (!freshSession) {
       setError("Google login is required before saving to Drive.");
+      return;
+    }
+
+    if ((freshSession as any)?.tokenError) {
+      setError("Google Drive session expired. Please sign in again.");
       return;
     }
 
@@ -346,7 +353,7 @@ export const useImageCaptureState = (
       sourceSummary,
       finalSummary,
       ocrText: finalOcrText,
-      accessToken: ((session as any)?.accessToken as string | undefined) ?? "",
+      accessToken: ((freshSession as any)?.accessToken as string | undefined) ?? "",
       selectedCanon,
       selectedSubfolder,
       setIsSaving,
@@ -376,7 +383,6 @@ export const useImageCaptureState = (
       },
     });
   }, [
-    session,
     isSaving,
     images,
     sourceSummary,

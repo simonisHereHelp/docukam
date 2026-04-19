@@ -49,8 +49,10 @@ export async function driveSaveFiles(params: {
   const session = await auth();
   if (!session) throw new Error("Not authenticated.");
 
+  const tokenError = (session as any)?.tokenError as string | undefined;
   const accessToken = (session as any)?.accessToken as string | undefined;
 
+  if (tokenError) throw new Error("Google Drive session expired. Please sign in again.");
   if (!accessToken) throw new Error("Missing Google Drive access token on session.");
 
   const resolvedFolderId = await ensureFolderPath(folderId, accessToken);
@@ -94,7 +96,9 @@ export async function resolveUniqueDriveSetName(params: {
   const session = await auth();
   if (!session) throw new Error("Not authenticated.");
 
+  const tokenError = (session as any)?.tokenError as string | undefined;
   const accessToken = (session as any)?.accessToken as string | undefined;
+  if (tokenError) throw new Error("Google Drive session expired. Please sign in again.");
   if (!accessToken) throw new Error("Missing Google Drive access token on session.");
 
   const resolvedFolderId = await ensureFolderPath(folderId, accessToken);

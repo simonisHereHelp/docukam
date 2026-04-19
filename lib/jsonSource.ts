@@ -24,7 +24,9 @@ export async function loadJsonSource(source: string, useAuth = false): Promise<a
 
   if (useAuth) {
     const session = await auth();
+    const tokenError = (session as any)?.tokenError;
     const accessToken = (session as any)?.accessToken;
+    if (tokenError) throw new Error("Google Drive session expired. Please sign in again.");
     if (!accessToken) throw new Error("Missing Google Drive access token");
 
     url = `https://www.googleapis.com/drive/v3/files/${source}?alt=media&supportsAllDrives=true`;
@@ -48,7 +50,9 @@ export async function updateDriveJsonSource(source: string, data: unknown): Prom
   }
 
   const session = await auth();
+  const tokenError = (session as any)?.tokenError;
   const accessToken = (session as any)?.accessToken;
+  if (tokenError) throw new Error("Google Drive session expired. Please sign in again.");
   if (!accessToken) throw new Error("Missing Google Drive access token");
 
   const uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${source}?uploadType=media&supportsAllDrives=true`;

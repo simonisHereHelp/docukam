@@ -149,7 +149,14 @@ export async function POST(request: Request) {
     }
 
     const session = await auth();
+    const tokenError = (session as any)?.tokenError as string | undefined;
     const accessToken = (session as any)?.accessToken as string | undefined;
+    if (tokenError) {
+      return NextResponse.json(
+        { error: "Google Drive session expired. Please sign in again." },
+        { status: 401 },
+      );
+    }
     if (!accessToken) {
       return NextResponse.json({ error: "Missing Google Drive access token on session." }, { status: 401 });
     }
