@@ -339,12 +339,6 @@ export const useImageCaptureState = (
       return;
     }
 
-    const finalOcrText = editedOcrText.trim();
-    if (!finalOcrText) {
-      setError("Please ensure the OCR text is not empty before saving.");
-      return;
-    }
-
     setSaveMessage("");
     setError("");
 
@@ -352,7 +346,7 @@ export const useImageCaptureState = (
       images,
       sourceSummary,
       finalSummary,
-      ocrText: finalOcrText,
+      ocrText: editedOcrText,
       accessToken: ((freshSession as any)?.accessToken as string | undefined) ?? "",
       selectedCanon,
       selectedSubfolder,

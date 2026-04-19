@@ -31,13 +31,35 @@ function Content() {
     folder: string;
     filename: string;
   } | null>(null);
+  const [authMessage, setAuthMessage] = useState("");
   const isMobile = useIsMobile();
 
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const tokenError = session?.tokenError;
   const userId = session?.userId || session?.user?.email || "Not connected";
+  const driveReady = status === "authenticated" && !tokenError;
 
   const handleOpen = (source: "camera" | "photos") => setDialogSource(source);
   const handleClose = () => setDialogSource(null);
+
+  useEffect(() => {
+    if (status === "loading") {
+      setAuthMessage("Checking Google Drive session...");
+      return;
+    }
+
+    if (!session) {
+      setAuthMessage("Google login is required for Drive save.");
+      return;
+    }
+
+    if (tokenError) {
+      setAuthMessage("Google Drive session expired. Please log in again.");
+      return;
+    }
+
+    setAuthMessage("");
+  }, [session, status, tokenError]);
 
   useEffect(() => {
     const loadConfirmation = () => {
@@ -75,7 +97,12 @@ function Content() {
           <p className="mx-auto mt-2 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
             User ID: {userId}
           </p>
-          {!session ? (
+          {authMessage ? (
+            <p className="mx-auto mt-2 max-w-2xl text-sm text-amber-600 dark:text-amber-300">
+              {authMessage}
+            </p>
+          ) : null}
+          {!session || tokenError ? (
             <Button onClick={() => signIn("google")} className="app-button mt-4">
               <span className="app-button-label">Login</span>
             </Button>
@@ -93,6 +120,7 @@ function Content() {
                 <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
                   <Button
                     onClick={() => handleOpen("camera")}
+                    disabled={!driveReady}
                     className="app-button h-12 cursor-pointer rounded-lg text-lg font-medium shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl !px-8 !py-3"
                   >
                     <Camera className="mr-2 h-5 w-5" />
@@ -100,6 +128,7 @@ function Content() {
                   </Button>
                   <Button
                     onClick={() => handleOpen("photos")}
+                    disabled={!driveReady}
                     className="app-button h-12 cursor-pointer rounded-lg text-lg font-medium shadow-lg transition-all duration-200 hover:shadow-xl !px-8 !py-3"
                   >
                     <span className="app-button-label">Photo Album</span>

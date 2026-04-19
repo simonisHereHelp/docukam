@@ -116,9 +116,9 @@ export async function POST(request: Request) {
     const trimmedOcrText = ocrText?.trim() ?? "";
     const imagePlans = Array.isArray(images) ? images : [];
 
-    if (!trimmedSummary || !trimmedOcrText || !imagePlans.length) {
+    if (!trimmedSummary || !imagePlans.length) {
       return NextResponse.json(
-        { error: "Summary, OCR text, and image metadata are required." },
+        { error: "Summary and image metadata are required." },
         { status: 400 },
       );
     }
