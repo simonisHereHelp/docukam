@@ -12,7 +12,7 @@ const stripDisallowedChars = (value: string) =>
 const toCamelToken = (token: string) => {
   if (!token) return "";
   if (/^\d+$/u.test(token)) return token;
-  if (/^[A-Za-z0-9]+$/u.test(token)) {
+  if (/^[A-Z0-9]+$/u.test(token) || /^[a-z0-9]+$/u.test(token)) {
     return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
   }
 

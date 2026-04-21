@@ -23,6 +23,27 @@ test("normalizeFilename removes commas and disallowed punctuation", () => {
   );
 });
 
+test("normalizeFilename preserves existing CamelCase segments", () => {
+  assert.equal(
+    normalizeFilename("Passport-TheUnitedStatesOfAmerica-19600226.md"),
+    "Passport-TheUnitedStatesOfAmerica-19600226.md",
+  );
+});
+
+test("normalizeFilename converts all-caps multiword segments to CamelCase", () => {
+  assert.equal(
+    normalizeFilename("Passport-THE UNITED STATES OF AMERICA-19600226.md"),
+    "Passport-TheUnitedStatesOfAmerica-19600226.md",
+  );
+});
+
+test("normalizeFilename preserves mixed-case prefixes and camelizes all-caps suffixes", () => {
+  assert.equal(
+    normalizeFilename("BirthCert-COUNTY OF LOS ANGELES-19940825.md"),
+    "BirthCert-CountyOfLosAngeles-19940825.md",
+  );
+});
+
 test("normalizeFilename preserves chinese text while removing spaces", () => {
   assert.equal(
     normalizeFilename("國 民 年 金 保 險-20232024.json"),
