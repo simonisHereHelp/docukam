@@ -55,6 +55,26 @@ export const extractDateDigitsField = (summary: string): string | null => {
     new RegExp(`^\\s*${DATE_FIELD_LABEL}${FIELD_SEPARATOR}(.*)$`, "mu"),
   );
   const value = match?.[1]?.trim() ?? "";
+  if (!value) return null;
+
+  const isoLikeMatch = value.match(/\b(\d{4})\D+(\d{1,2})\D+(\d{1,2})\b/);
+  if (isoLikeMatch) {
+    const [, year, month, day] = isoLikeMatch;
+    return `${year}${month.padStart(2, "0")}${day.padStart(2, "0")}`;
+  }
+
+  const partialYearMonthMatch = value.match(/\b(\d{4})\D+(\d{1,2})\b/);
+  if (partialYearMonthMatch) {
+    const [, year, month] = partialYearMonthMatch;
+    return `${year}${month.padStart(2, "0")}`;
+  }
+
+  const monthDayYearMatch = value.match(/\b(\d{1,2})\D+(\d{1,2})\D+(\d{4})\b/);
+  if (monthDayYearMatch) {
+    const [, month, day, year] = monthDayYearMatch;
+    return `${year}${month.padStart(2, "0")}${day.padStart(2, "0")}`;
+  }
+
   const digitsOnly = value.replace(/\D+/g, "");
 
   return digitsOnly || null;
