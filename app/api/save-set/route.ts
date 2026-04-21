@@ -5,7 +5,11 @@ import { DRIVE_FALLBACK_FOLDER_ID } from "@/lib/jsonCanonSources";
 import { resolveDriveFolder } from "@/lib/driveSubfolderResolver";
 import { normalizeSixWText } from "@/lib/formatSixWText";
 import { normalizeFilename } from "@/lib/normalizeFilename";
-import { buildNamingSummary, extractIssuerField } from "@/lib/summaryFields";
+import {
+  buildNamingSummary,
+  extractDateDigitsField,
+  extractIssuerField,
+} from "@/lib/summaryFields";
 import { auth } from "@/auth";
 
 interface SelectedCanonMeta {
@@ -86,7 +90,9 @@ const BASE_DRIVE_FOLDER_ID = DRIVE_FALLBACK_FOLDER_ID;
 const ROOT_DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
 
 async function deriveSetNameFromSummary(summary: string): Promise<string> {
-  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const datePart =
+    extractDateDigitsField(summary) ||
+    new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const issuerName = extractIssuerField(summary);
   const fallbackTitle = normalizeFilename(issuerName || "document");
   return `${fallbackTitle}-${datePart}`;

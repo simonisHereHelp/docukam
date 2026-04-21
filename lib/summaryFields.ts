@@ -1,5 +1,6 @@
-const ISSUER_FIELD_LABEL = "單位";
-const FIELD_SEPARATOR = "\\s*[:：]\\s*";
+const ISSUER_FIELD_LABEL = "\u55ae\u4f4d";
+const DATE_FIELD_LABEL = "\u65e5\u671f";
+const FIELD_SEPARATOR = "\\s*[:\uff1a]\\s*";
 
 export const extractIssuerField = (summary: string): string | null => {
   const match = summary.match(
@@ -47,4 +48,14 @@ export const buildNamingSummary = (summary: string, fallbackIssuer?: string | nu
   }
 
   return [`issuer_name: ${issuerName}`, trimmedSummary].filter(Boolean).join("\n\n");
+};
+
+export const extractDateDigitsField = (summary: string): string | null => {
+  const match = summary.match(
+    new RegExp(`^\\s*${DATE_FIELD_LABEL}${FIELD_SEPARATOR}(.*)$`, "mu"),
+  );
+  const value = match?.[1]?.trim() ?? "";
+  const digitsOnly = value.replace(/\D+/g, "");
+
+  return digitsOnly || null;
 };
