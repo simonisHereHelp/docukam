@@ -33,7 +33,7 @@ interface SavePlanResponse {
 
 /**
  * Saves the current images and edited summary via /api/save-set.
- * The server derives the final set name and persists the issuer canon update.
+ * The server derives the final set name and returns a Drive upload plan.
  */
 export const handleSave = async ({
   images,
@@ -159,27 +159,6 @@ export const handleSave = async ({
       mimeType: "text/markdown",
       file: new Blob([plan.markdownText], { type: "text/markdown" }),
     });
-
-    try {
-      const updateResponse = await fetch("/api/update-issuerCanon", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sourceSummary: sourceSummary.trim(),
-          finalSummary: trimmedFinalSummary,
-        }),
-        credentials: "include",
-      });
-
-      if (!updateResponse.ok) {
-        console.warn(`[update-issuerCanon] Server warning/error: ${updateResponse.status}`);
-      }
-    } catch (error) {
-      // Canon updates should not block the main save flow.
-      console.error("Error calling /api/update-issuerCanon:", error);
-    }
 
     onSuccess?.({
       setName: plan?.setName ?? "",
