@@ -1,9 +1,9 @@
 const SIX_W_LABELS = [
-  "單位",
-  "收件人",
-  "日期",
-  "主題",
-  "地點",
+  "\u55ae\u4f4d",
+  "\u6536\u4ef6\u4eba",
+  "\u65e5\u671f",
+  "\u4e3b\u984c",
+  "\u5730\u9ede",
   "abstract_summary",
 ] as const;
 
@@ -21,7 +21,7 @@ const parseSixWText = (text: string): Partial<Record<SixWLabel, string>> => {
     const line = rawLine.trim();
     if (!line) continue;
 
-    const match = line.match(/^([^:：]+)\s*[:：]\s*(.*)$/u);
+    const match = line.match(/^([^:\uff1a]+)\s*[:\uff1a]\s*(.*)$/u);
     if (match) {
       const [, possibleLabel, value] = match;
       const normalizedLabel = possibleLabel.trim();
@@ -40,26 +40,26 @@ const parseSixWText = (text: string): Partial<Record<SixWLabel, string>> => {
   return parsed;
 };
 
-const normalizeSixWValue = (value?: string) => value?.trim() || "未識別";
+const normalizeSixWValue = (value?: string) => value?.trim() || "\u672a\u8b58\u5225";
 
 export const formatSixWFromRecord = (record: {
-  單位?: string;
-  收件人?: string;
-  日期?: string;
-  主題?: string;
-  地點?: string;
+  "\u55ae\u4f4d"?: string;
+  "\u6536\u4ef6\u4eba"?: string;
+  "\u65e5\u671f"?: string;
+  "\u4e3b\u984c"?: string;
+  "\u5730\u9ede"?: string;
   abstract_summary?: string;
 }) =>
   [
-    `單位: ${normalizeSixWValue(record["單位"])}`,
-    `收件人: ${normalizeSixWValue(record["收件人"])}`,
-    `日期: ${normalizeSixWValue(record["日期"])}`,
-    `主題: ${normalizeSixWValue(record["主題"])}`,
-    `地點: ${normalizeSixWValue(record["地點"])}`,
+    `\u55ae\u4f4d: ${normalizeSixWValue(record["\u55ae\u4f4d"])}`,
+    `\u6536\u4ef6\u4eba: ${normalizeSixWValue(record["\u6536\u4ef6\u4eba"])}`,
+    `\u65e5\u671f: ${normalizeSixWValue(record["\u65e5\u671f"])}`,
+    `\u4e3b\u984c: ${normalizeSixWValue(record["\u4e3b\u984c"])}`,
+    `\u5730\u9ede: ${normalizeSixWValue(record["\u5730\u9ede"])}`,
     `abstract_summary: ${normalizeSixWValue(record.abstract_summary)}`,
   ].join("\n\n");
 
-export const normalizeSixWText = (text: string) => {
+const normalizeSingleSixWBlock = (text: string) => {
   const parsed = parseSixWText(text);
   const hasAnySixWValue = Object.keys(parsed).length > 0;
   if (!hasAnySixWValue) {
@@ -69,3 +69,21 @@ export const normalizeSixWText = (text: string) => {
   return formatSixWFromRecord(parsed);
 };
 
+export const normalizeSixWText = (text: string) => {
+  const trimmedText = text.trim();
+  if (!trimmedText) return "";
+
+  const multiImageBlocks = trimmedText.match(/(?:^|\n\n)(Image\s+\d+\n[\s\S]*?)(?=\n\nImage\s+\d+\n|$)/g);
+  if (multiImageBlocks?.length) {
+    return multiImageBlocks
+      .map((block) => {
+        const cleanedBlock = block.trim();
+        const [headingLine, ...rest] = cleanedBlock.split(/\r?\n/);
+        const normalizedBlock = normalizeSingleSixWBlock(rest.join("\n").trim());
+        return [headingLine.trim(), normalizedBlock].filter(Boolean).join("\n\n");
+      })
+      .join("\n\n");
+  }
+
+  return normalizeSingleSixWBlock(trimmedText);
+};
